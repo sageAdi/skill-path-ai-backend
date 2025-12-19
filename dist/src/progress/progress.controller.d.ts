@@ -26,8 +26,8 @@ export declare class ProgressController {
         averageScore: number;
         progress: ({
             skill: {
-                name: string;
                 id: string;
+                name: string;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
                 category: string | null;
             };
@@ -47,13 +47,13 @@ export declare class ProgressController {
         id: string;
     }, skillId: string): Promise<{
         skill: {
-            name: string;
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
             description: string | null;
             difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             category: string | null;
-            createdAt: Date;
-            updatedAt: Date;
         };
     } & {
         id: string;

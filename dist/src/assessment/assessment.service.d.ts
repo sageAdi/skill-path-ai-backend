@@ -20,13 +20,13 @@ export declare class AssessmentService {
             order: number;
         }[];
         skill: {
-            name: string;
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
             description: string | null;
             difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             category: string | null;
-            createdAt: Date;
-            updatedAt: Date;
         } | null;
     }>;
     submitAssessment(userId: string, submitAssessmentDto: SubmitAssessmentDto): Promise<{
@@ -45,13 +45,13 @@ export declare class AssessmentService {
     }>;
     getAssessment(assessmentId: string, userId: string): Promise<{
         skill: {
-            name: string;
             id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            name: string;
             description: string | null;
             difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             category: string | null;
-            createdAt: Date;
-            updatedAt: Date;
         } | null;
         questions: {
             id: string;

@@ -24,7 +24,6 @@ export class SkillsService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const skill = await this.prisma.skill.create({
       data: {
         name: createSkillDto.name,
@@ -38,7 +37,6 @@ export class SkillsService {
   }
 
   async findAll() {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const skills = await this.prisma.skill.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
@@ -71,7 +69,6 @@ export class SkillsService {
   }
 
   async findOne(id: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const skill = await this.prisma.skill.findUnique({
       where: { id },
       include: {
@@ -132,7 +129,6 @@ export class SkillsService {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const updatedSkill = await this.prisma.skill.update({
       where: { id },
       data: {
@@ -158,11 +154,10 @@ export class SkillsService {
 
     // Check if skill is being used in learning paths or assessments
     const [learningPathNodes, assessments] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.prisma.learningPathNode.findFirst({
         where: { skillId: id },
       }),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
       this.prisma.assessment.findFirst({
         where: { skillId: id },
       }),
@@ -174,7 +169,6 @@ export class SkillsService {
       );
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.prisma.skill.delete({
       where: { id },
     });
@@ -191,9 +185,8 @@ export class SkillsService {
 
     // Check if both skills exist
     const [skill, prerequisite] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
       this.prisma.skill.findUnique({ where: { id: skillId } }),
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+
       this.prisma.skill.findUnique({ where: { id: prerequisiteId } }),
     ]);
 
@@ -223,7 +216,6 @@ export class SkillsService {
       throw new ConflictException('Prerequisite relationship already exists');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const skillPrerequisite = await this.prisma.skillPrerequisite.create({
       data: {
         skillId,
@@ -235,7 +227,6 @@ export class SkillsService {
   }
 
   async removePrerequisite(skillId: string, prerequisiteId: string) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const skillPrerequisite = await this.prisma.skillPrerequisite.findUnique({
       where: {
         skillId_prerequisiteId: {
@@ -249,7 +240,6 @@ export class SkillsService {
       throw new NotFoundException('Prerequisite relationship not found');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     await this.prisma.skillPrerequisite.delete({
       where: {
         skillId_prerequisiteId: {

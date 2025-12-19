@@ -1,0 +1,1 @@
+{"version":3,"file":"ai.service.js","sourceRoot":"","sources":["../../../../frontend/services/api/ai.service.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,MAAM,EAAE,MAAM,sBAAsB,CAAC;AAE9C,MAAM,CAAC,MAAM,SAAS,GAAG;IAIvB,KAAK,CAAC,aAAa,CACjB,gBAAkC;QAElC,MAAM,GAAG,GAAG,MAAM,EAAE,CAAC;QACrB,OAAO,GAAG,CAAC,IAAI,CAAwB,aAAa,EAAE,gBAAgB,CAAC,CAAC;IAC1E,CAAC;CACF,CAAC"}

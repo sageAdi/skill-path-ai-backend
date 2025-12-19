@@ -11,13 +11,13 @@ export declare class LearningPathService {
     generateInitialPath(userId: string): Promise<{
         nodes: ({
             skill: {
-                name: string;
                 id: string;
+                createdAt: Date;
+                updatedAt: Date;
+                name: string;
                 description: string | null;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
                 category: string | null;
-                createdAt: Date;
-                updatedAt: Date;
             };
         } & {
             id: string;
