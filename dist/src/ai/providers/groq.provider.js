@@ -11,33 +11,37 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var OpenAIProvider_1;
+var GroqProvider_1;
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.OpenAIProvider = void 0;
+exports.GroqProvider = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
-const openai_1 = __importDefault(require("openai"));
-let OpenAIProvider = OpenAIProvider_1 = class OpenAIProvider {
+const groq_sdk_1 = __importDefault(require("groq-sdk"));
+let GroqProvider = GroqProvider_1 = class GroqProvider {
     configService;
-    logger = new common_1.Logger(OpenAIProvider_1.name);
-    openai;
+    logger = new common_1.Logger(GroqProvider_1.name);
+    groq;
+    model;
     constructor(configService) {
         this.configService = configService;
-        const apiKey = this.configService.get('OPENAI_API_KEY');
+        const apiKey = this.configService.get('GROQ_API_KEY');
         if (!apiKey) {
-            this.logger.warn('OPENAI_API_KEY not found. AI features will not work.');
+            this.logger.warn('GROQ_API_KEY not found. AI features will not work.');
         }
-        this.openai = new openai_1.default({
+        this.groq = new groq_sdk_1.default({
             apiKey: apiKey || 'dummy-key',
         });
+        this.model =
+            this.configService.get('GROQ_MODEL') || 'llama-3.1-8b-instant';
+        this.logger.log(`Groq provider initialized with model: ${this.model}`);
     }
     async generateQuestions(context, skillName, count = 5) {
         try {
             const prompt = skillName
                 ? `Generate ${count} multiple-choice assessment questions about "${skillName}" for someone learning "${context}". Each question should have 4 options, with exactly one correct answer. Return the response as a JSON object with a "questions" array: {"questions": [{"question": "string", "options": ["option1", "option2", "option3", "option4"], "correctAnswerIndex": 0, "explanation": "brief explanation"}]}.`
                 : `Generate ${count} multiple-choice assessment questions for someone learning "${context}". Each question should have 4 options, with exactly one correct answer. Return the response as a JSON object with a "questions" array: {"questions": [{"question": "string", "options": ["option1", "option2", "option3", "option4"], "correctAnswerIndex": 0, "explanation": "brief explanation"}]}.`;
-            const completion = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+            const completion = await this.groq.chat.completions.create({
+                model: this.model,
                 messages: [
                     {
                         role: 'system',
@@ -53,9 +57,22 @@ let OpenAIProvider = OpenAIProvider_1 = class OpenAIProvider {
             });
             const content = completion.choices[0]?.message?.content;
             if (!content) {
-                throw new Error('Empty response from OpenAI');
+                throw new Error('Empty response from Groq');
             }
-            const parsed = JSON.parse(content);
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            }
+            catch {
+                const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
+                    content.match(/```\s*([\s\S]*?)\s*```/);
+                if (jsonMatch) {
+                    parsed = JSON.parse(jsonMatch[1]);
+                }
+                else {
+                    throw new Error('Failed to parse JSON response from Groq');
+                }
+            }
             const response = parsed;
             const questions = Array.isArray(parsed)
                 ? parsed
@@ -92,8 +109,8 @@ let OpenAIProvider = OpenAIProvider_1 = class OpenAIProvider {
     async explainAnswer(question, userAnswer, correctAnswer) {
         try {
             const prompt = `The user answered "${userAnswer}" to the question: "${question}". The correct answer is "${correctAnswer}". Provide a clear, educational explanation of why the correct answer is correct and what the user might have misunderstood. Keep it concise (2-3 sentences).`;
-            const completion = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+            const completion = await this.groq.chat.completions.create({
+                model: this.model,
                 messages: [
                     {
                         role: 'system',
@@ -130,13 +147,13 @@ ${progressSummary}
 And current learning path:
 ${pathSummary}
 
-Suggest learning path adjustments. Return JSON array: [{"action": "INSERT_REVISION"|"INSERT_MICRO_PRACTICE"|"SKIP_SKILL"|"REORDER", "skillId": "uuid or null", "targetOrder": number or null, "reason": "explanation"}]. Only suggest if there are clear learning gaps or issues.`;
-            const completion = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+Suggest learning path adjustments. Return JSON object with "suggestions" array: {"suggestions": [{"action": "INSERT_REVISION"|"INSERT_MICRO_PRACTICE"|"SKIP_SKILL"|"REORDER", "skillId": "uuid or null", "targetOrder": number or null, "reason": "explanation"}]}. Only suggest if there are clear learning gaps or issues.`;
+            const completion = await this.groq.chat.completions.create({
+                model: this.model,
                 messages: [
                     {
                         role: 'system',
-                        content: 'You are an adaptive learning system that suggests learning path improvements based on student performance.',
+                        content: 'You are an adaptive learning system that suggests learning path improvements based on student performance. Always return valid JSON.',
                     },
                     {
                         role: 'user',
@@ -150,7 +167,21 @@ Suggest learning path adjustments. Return JSON array: [{"action": "INSERT_REVISI
             if (!content) {
                 return [];
             }
-            const parsed = JSON.parse(content);
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            }
+            catch {
+                const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
+                    content.match(/```\s*([\s\S]*?)\s*```/);
+                if (jsonMatch) {
+                    parsed = JSON.parse(jsonMatch[1]);
+                }
+                else {
+                    this.logger.warn('Failed to parse suggestions JSON, returning empty array');
+                    return [];
+                }
+            }
             const response = parsed;
             const suggestions = Array.isArray(parsed)
                 ? parsed
@@ -187,9 +218,9 @@ Suggest learning path adjustments. Return JSON array: [{"action": "INSERT_REVISI
         }
     }
 };
-exports.OpenAIProvider = OpenAIProvider;
-exports.OpenAIProvider = OpenAIProvider = OpenAIProvider_1 = __decorate([
+exports.GroqProvider = GroqProvider;
+exports.GroqProvider = GroqProvider = GroqProvider_1 = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService])
-], OpenAIProvider);
-//# sourceMappingURL=openai.provider.js.map
+], GroqProvider);
+//# sourceMappingURL=groq.provider.js.map

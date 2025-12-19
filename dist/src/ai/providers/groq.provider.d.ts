@@ -1,9 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { IAIProvider, GeneratedQuestion, PathAdjustmentSuggestion } from '../interfaces/ai-provider.interface';
-export declare class OpenAIProvider implements IAIProvider {
+export declare class GroqProvider implements IAIProvider {
     private configService;
     private readonly logger;
-    private readonly openai;
+    private readonly groq;
+    private readonly model;
     constructor(configService: ConfigService);
     generateQuestions(context: string, skillName?: string, count?: number): Promise<GeneratedQuestion[]>;
     explainAnswer(question: string, userAnswer: string, correctAnswer: string): Promise<string>;

@@ -5,8 +5,8 @@ export declare class SkillsController {
     private readonly skillsService;
     constructor(skillsService: SkillsService);
     create(createSkillDto: CreateSkillDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         description: string | null;
         difficulty: import("@prisma/client").$Enums.SkillDifficulty;
         category: string | null;
@@ -16,8 +16,8 @@ export declare class SkillsController {
     findAll(): Promise<({
         prerequisites: ({
             prerequisite: {
-                id: string;
                 name: string;
+                id: string;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             };
         } & {
@@ -27,8 +27,8 @@ export declare class SkillsController {
         })[];
         dependents: ({
             skill: {
-                id: string;
                 name: string;
+                id: string;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             };
         } & {
@@ -37,8 +37,8 @@ export declare class SkillsController {
             prerequisiteId: string;
         })[];
     } & {
-        id: string;
         name: string;
+        id: string;
         description: string | null;
         difficulty: import("@prisma/client").$Enums.SkillDifficulty;
         category: string | null;
@@ -48,8 +48,8 @@ export declare class SkillsController {
     findOne(id: string): Promise<{
         prerequisites: ({
             prerequisite: {
-                id: string;
                 name: string;
+                id: string;
                 description: string | null;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             };
@@ -60,8 +60,8 @@ export declare class SkillsController {
         })[];
         dependents: ({
             skill: {
-                id: string;
                 name: string;
+                id: string;
                 description: string | null;
                 difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             };
@@ -71,8 +71,8 @@ export declare class SkillsController {
             prerequisiteId: string;
         })[];
     } & {
-        id: string;
         name: string;
+        id: string;
         description: string | null;
         difficulty: import("@prisma/client").$Enums.SkillDifficulty;
         category: string | null;
@@ -80,8 +80,8 @@ export declare class SkillsController {
         updatedAt: Date;
     }>;
     update(id: string, updateSkillDto: UpdateSkillDto): Promise<{
-        id: string;
         name: string;
+        id: string;
         description: string | null;
         difficulty: import("@prisma/client").$Enums.SkillDifficulty;
         category: string | null;

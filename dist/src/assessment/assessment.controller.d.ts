@@ -18,13 +18,13 @@ export declare class AssessmentController {
             order: number;
         }[];
         skill: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
             name: string;
+            id: string;
             description: string | null;
             difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             category: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
     }>;
     submitAssessment(user: {
@@ -47,13 +47,13 @@ export declare class AssessmentController {
         id: string;
     }, id: string): Promise<{
         skill: {
-            id: string;
-            createdAt: Date;
-            updatedAt: Date;
             name: string;
+            id: string;
             description: string | null;
             difficulty: import("@prisma/client").$Enums.SkillDifficulty;
             category: string | null;
+            createdAt: Date;
+            updatedAt: Date;
         } | null;
         questions: {
             id: string;

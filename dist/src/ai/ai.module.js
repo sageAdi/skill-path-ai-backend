@@ -10,7 +10,7 @@ exports.AIModule = void 0;
 const common_1 = require("@nestjs/common");
 const ai_controller_1 = require("./ai.controller");
 const ai_service_1 = require("./ai.service");
-const ollama_provider_1 = require("./providers/ollama.provider");
+const groq_provider_1 = require("./providers/groq.provider");
 let AIModule = class AIModule {
 };
 exports.AIModule = AIModule;
@@ -21,7 +21,7 @@ exports.AIModule = AIModule = __decorate([
             ai_service_1.AIService,
             {
                 provide: 'AI_PROVIDER',
-                useClass: ollama_provider_1.OllamaProvider,
+                useClass: groq_provider_1.GroqProvider,
             },
         ],
         exports: [ai_service_1.AIService, 'AI_PROVIDER'],

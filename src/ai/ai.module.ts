@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AIController } from './ai.controller';
 import { AIService } from './ai.service';
-import { OllamaProvider } from './providers/ollama.provider';
+import { GroqProvider } from './providers/groq.provider';
 
 @Module({
   controllers: [AIController],
@@ -9,7 +9,7 @@ import { OllamaProvider } from './providers/ollama.provider';
     AIService,
     {
       provide: 'AI_PROVIDER',
-      useClass: OllamaProvider,
+      useClass: GroqProvider,
     },
   ],
   exports: [AIService, 'AI_PROVIDER'],
