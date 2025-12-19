@@ -1,0 +1,205 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum SkillDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+enum LearningPathStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+}
+
+enum NodeType {
+  SKILL
+  REVISION
+  MICRO_PRACTICE
+}
+
+enum NodeStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  SKIPPED
+}
+
+enum AssessmentType {
+  ROLE_BASED
+  SKILL_BASED
+}
+
+enum AssessmentStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  NEEDS_REVISION
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  password     String
+  role         UserRole @default(USER)
+  learningRole String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  learningPaths LearningPath[]
+  assessments   Assessment[]
+  progress      Progress[]
+  answers       AssessmentAnswer[]
+
+  @@index([email])
+}
+
+model Skill {
+  id          String          @id @default(uuid())
+  name        String          @unique
+  description String?
+  difficulty  SkillDifficulty
+  category    String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  prerequisites     SkillPrerequisite[] @relation("Prerequisite")
+  dependents        SkillPrerequisite[] @relation("Dependent")
+  learningPathNodes LearningPathNode[]
+  progress          Progress[]
+  assessments       Assessment[]
+
+  @@index([name])
+}
+
+model SkillPrerequisite {
+  id             String @id @default(uuid())
+  skillId        String
+  prerequisiteId String
+
+  skill        Skill @relation("Dependent", fields: [skillId], references: [id], onDelete: Cascade)
+  prerequisite Skill @relation("Prerequisite", fields: [prerequisiteId], references: [id], onDelete: Cascade)
+
+  @@unique([skillId, prerequisiteId])
+  @@index([skillId])
+  @@index([prerequisiteId])
+}
+
+model LearningPath {
+  id        String             @id @default(uuid())
+  userId    String
+  status    LearningPathStatus @default(ACTIVE)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  user  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes LearningPathNode[]
+
+  @@index([userId])
+}
+
+model LearningPathNode {
+  id             String     @id @default(uuid())
+  learningPathId String
+  skillId        String
+  order          Int
+  nodeType       NodeType   @default(SKILL)
+  status         NodeStatus @default(PENDING)
+  insertedAt     DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  skill        Skill        @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([learningPathId, order])
+  @@index([learningPathId])
+  @@index([skillId])
+}
+
+model Assessment {
+  id          String           @id @default(uuid())
+  userId      String
+  skillId     String?
+  type        AssessmentType
+  status      AssessmentStatus @default(IN_PROGRESS)
+  createdAt   DateTime         @default(now())
+  completedAt DateTime?
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill     Skill?               @relation(fields: [skillId], references: [id], onDelete: SetNull)
+  questions AssessmentQuestion[]
+
+  @@index([userId])
+  @@index([skillId])
+}
+
+model AssessmentQuestion {
+  id            String   @id @default(uuid())
+  assessmentId  String
+  question      String
+  options       Json // Array of strings
+  correctAnswer Int // Index in options array
+  explanation   String?
+  order         Int
+  createdAt     DateTime @default(now())
+
+  assessment Assessment         @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  answers    AssessmentAnswer[]
+
+  @@index([assessmentId])
+}
+
+model AssessmentAnswer {
+  id             String   @id @default(uuid())
+  questionId     String
+  userId         String
+  selectedAnswer Int // Index in options array
+  isCorrect      Boolean
+  answeredAt     DateTime @default(now())
+
+  question AssessmentQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user     User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([userId])
+}
+
+model Progress {
+  id            String         @id @default(uuid())
+  userId        String
+  skillId       String
+  score         Decimal        @default(0) @db.Decimal(5, 2) // 0-100.00
+  attempts      Int            @default(0)
+  status        ProgressStatus @default(NOT_STARTED)
+  lastAttemptAt DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, skillId])
+  @@index([userId])
+  @@index([skillId])
+}

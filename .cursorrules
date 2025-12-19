@@ -1,0 +1,140 @@
+# SkillPath AI Backend - Cursor Rules
+
+## Project Context
+This is the backend for "SkillPath AI," an AI-driven adaptive learning platform built with NestJS and TypeScript.
+
+## Tech Stack
+- **Framework**: NestJS (latest stable)
+- **Language**: TypeScript
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: JWT (Passport.js with passport-jwt)
+- **AI Integration**: OpenAI API (abstracted via IAIProvider interface)
+- **Validation**: class-validator, DTO-based
+- **Architecture**: Clean Architecture principles
+
+## Prisma Configuration
+- Prisma client is generated to `./generated/prisma` (custom output path)
+- Import PrismaClient from `../../generated/prisma/client` (relative to file)
+- Import enums from `../../generated/prisma/enums`
+- PrismaService extends PrismaClient and is used throughout the app
+- Always add ESLint suppressions for Prisma queries due to custom output path:
+  ```typescript
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+  const result = await this.prisma.model.findUnique({ ... });
+  ```
+
+## Coding Standards
+- **Clean Code**: Follow readability, modularity, type safety
+- **Performance**: Optimize for production use
+- **Comments**: Add brief comments explaining non-obvious logic
+- **Maintainability**: Prefer scalable and maintainable solutions
+- **Controllers**: Keep thin, delegate to services
+- **Services**: Contain all business logic
+- **DTOs**: Use class-validator decorators for validation
+- **No async in controllers**: NestJS auto-unwraps promises; avoid `async` keyword in controller methods unless using `await` internally
+
+## Architecture Patterns
+- **Module Structure**: Each feature has its own module (Auth, Users, Assessment, Progress, LearningPath, AI)
+- **Guards**: Use JwtAuthGuard for authentication, RolesGuard for authorization
+- **Decorators**: Use @CurrentUser() to extract user from request
+- **Exception Handling**: Use NestJS built-in exceptions (NotFoundException, BadRequestException, UnauthorizedException, ConflictException)
+- **Dependency Injection**: Constructor-based injection throughout
+
+## Core Modules
+1. **Auth**: Registration, login, JWT generation
+2. **Users**: Profile management
+3. **Assessment**: AI-generated assessments, submission, evaluation
+4. **Progress**: Track user progress, scores, attempts, mastery
+5. **LearningPath**: Adaptive learning path generation and adaptation (MOST IMPORTANT)
+6. **AI**: Centralized AI service with OpenAI provider
+
+## Adaptive Learning Logic (Critical)
+The learning path adaptation follows simple, explainable rules:
+- Score >= 80% → mark skill as completed
+- Score 50-79% → allow progression but flag for revision
+- Score < 50% → insert revision node before next skill
+- Repeated failures (>3 attempts, <50%) → insert micro-practice node
+- AI suggestions SUPPORT decisions, don't override rules
+
+## Database Models
+- User (email, password, role, learningRole)
+- Skill (name, difficulty, prerequisites)
+- LearningPath (userId, nodes[], status)
+- LearningPathNode (skillId, order, nodeType, status)
+- Assessment (userId, skillId, type, status, questions[])
+- Progress (userId, skillId, score, attempts, status)
+
+## Environment Variables
+- DATABASE_URL (PostgreSQL connection)
+- JWT_SECRET, JWT_EXPIRES_IN
+- OPENAI_API_KEY
+- PORT (default 3000)
+
+## Key Conventions
+- Use ESLint and Prettier for code formatting
+- Prisma schema is in `prisma/schema.prisma`
+- Generate Prisma client with `npx prisma generate`
+- Run migrations with `npx prisma migrate dev`
+- Build with `npm run build`
+- Start dev server with `npm run start:dev`
+
+## Common Patterns to Follow
+1. Always inject PrismaService in constructors
+2. Use DTO classes for request validation
+3. Return clean response objects (no passwords, no internal IDs when not needed)
+4. Use transactions for multi-step database operations
+5. Validate user ownership before allowing operations
+6. Hash passwords with bcrypt (10 rounds)
+7. Use proper HTTP status codes
+
+## AI Integration
+- AI service is abstracted via IAIProvider interface
+- Current implementation: OpenaiProvider
+- AI is used for: question generation, answer explanation, path adjustment suggestions
+- Always validate and sanitize AI output before using
+- AI suggestions are advisory, not mandatory
+
+## Testing Approach (Future)
+- Unit tests for services
+- E2E tests for critical flows
+- Mock PrismaService and AI service in tests
+
+## Error Handling
+- Use typed exceptions from @nestjs/common
+- Provide clear error messages
+- Log errors appropriately
+- Don't expose internal details to clients
+
+## Security Practices
+- JWT tokens for authentication
+- Bcrypt for password hashing
+- Validate all user input
+- Check user ownership for all operations
+- Use guards for protected routes
+- Don't log sensitive data
+
+## When Suggesting Changes
+- Maintain production-ready code quality
+- Follow existing patterns in the codebase
+- Explain non-obvious decisions
+- Consider scalability and performance
+- Keep it hackathon-friendly (simple, explainable)
+
+## Files to Reference
+- `/prisma/schema.prisma` - Database schema
+- `/src/app.module.ts` - Root module
+- `/src/main.ts` - Application entry point
+- `/README.md` - Project documentation
+- `/.env.example` - Environment variables template
+
+## Do NOT
+- Add unnecessary abstractions
+- Generate frontend code
+- Generate deployment scripts
+- Create documentation files unless explicitly requested
+- Modify git configuration
+- Use force push or destructive git commands
+- Skip validation or authentication checks
+- Expose sensitive data in responses
+- Add dependencies without good reason
+

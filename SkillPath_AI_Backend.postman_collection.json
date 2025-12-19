@@ -1,0 +1,760 @@
+{
+  "info": {
+    "_postman_id": "skillpath-ai-backend-collection",
+    "name": "SkillPath AI Backend",
+    "description": "Complete API collection for SkillPath AI Backend - An AI-driven adaptive learning platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "skillpath-ai"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "item": [
+        {
+          "name": "Get Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/",
+              "host": ["{{base_url}}"],
+              "path": [""]
+            },
+            "description": "Check if the server is running"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.environment.set('auth_token', response.access_token);",
+                  "        pm.environment.set('user_id', response.user.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"learningRole\": \"Frontend Developer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Register a new user account"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.access_token) {",
+                  "        pm.environment.set('auth_token', response.access_token);",
+                  "        pm.environment.set('user_id', response.user.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login and receive JWT token"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            },
+            "description": "Get current user's profile"
+          },
+          "response": []
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"learningRole\": \"Backend Developer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            },
+            "description": "Update user profile"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Skills",
+      "item": [
+        {
+          "name": "Create Skill",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.environment.set('skill_id', response.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"JavaScript Basics\",\n  \"description\": \"Learn the fundamentals of JavaScript programming\",\n  \"difficulty\": \"BEGINNER\",\n  \"category\": \"Programming\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/skills",
+              "host": ["{{base_url}}"],
+              "path": ["skills"]
+            },
+            "description": "Create a new skill. Requires ADMIN role. Difficulty options: BEGINNER, INTERMEDIATE, ADVANCED"
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Skills",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/skills",
+              "host": ["{{base_url}}"],
+              "path": ["skills"]
+            },
+            "description": "Get all available skills"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Skill by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.environment.set('skill_id', response.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/skills/{{skill_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["skills", "{{skill_id}}"]
+            },
+            "description": "Get a specific skill by ID. Uses skill_id from environment variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Update Skill",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Skill Name\",\n  \"description\": \"Updated description\",\n  \"difficulty\": \"INTERMEDIATE\",\n  \"category\": \"Updated Category\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/skills/{{skill_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["skills", "{{skill_id}}"]
+            },
+            "description": "Update a skill. Requires ADMIN role. All fields are optional."
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Skill",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/skills/{{skill_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["skills", "{{skill_id}}"]
+            },
+            "description": "Delete a skill. Requires ADMIN role. Cannot delete skills that are used in learning paths or assessments."
+          },
+          "response": []
+        },
+        {
+          "name": "Add Prerequisite",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/skills/{{skill_id}}/prerequisites/{{prerequisite_id}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "skills",
+                "{{skill_id}}",
+                "prerequisites",
+                "{{prerequisite_id}}"
+              ]
+            },
+            "description": "Add a prerequisite to a skill. Requires ADMIN role. prerequisite_id should be set in environment variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Remove Prerequisite",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/skills/{{skill_id}}/prerequisites/{{prerequisite_id}}",
+              "host": ["{{base_url}}"],
+              "path": [
+                "skills",
+                "{{skill_id}}",
+                "prerequisites",
+                "{{prerequisite_id}}"
+              ]
+            },
+            "description": "Remove a prerequisite from a skill. Requires ADMIN role."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Assessment",
+      "item": [
+        {
+          "name": "Start Assessment - Role Based",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.environment.set('assessment_id', response.id);",
+                  "    }",
+                  "    if (response.questions && response.questions.length > 0) {",
+                  "        pm.environment.set('question_id', response.questions[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ROLE_BASED\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/assessment/start",
+              "host": ["{{base_url}}"],
+              "path": ["assessment", "start"]
+            },
+            "description": "Start a role-based assessment"
+          },
+          "response": []
+        },
+        {
+          "name": "Start Assessment - Skill Based",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.id) {",
+                  "        pm.environment.set('assessment_id', response.id);",
+                  "    }",
+                  "    if (response.questions && response.questions.length > 0) {",
+                  "        pm.environment.set('question_id', response.questions[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"SKILL_BASED\",\n  \"skillId\": \"{{skill_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/assessment/start",
+              "host": ["{{base_url}}"],
+              "path": ["assessment", "start"]
+            },
+            "description": "Start a skill-based assessment. Requires skill_id environment variable."
+          },
+          "response": []
+        },
+        {
+          "name": "Submit Assessment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentId\": \"{{assessment_id}}\",\n  \"answers\": [\n    {\n      \"questionId\": \"{{question_id}}\",\n      \"selectedAnswer\": 0\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/assessment/submit",
+              "host": ["{{base_url}}"],
+              "path": ["assessment", "submit"]
+            },
+            "description": "Submit assessment answers. Uses assessment_id and question_id from environment variables."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assessment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/assessment/{{assessment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["assessment", "{{assessment_id}}"]
+            },
+            "description": "Get assessment details by ID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Progress",
+      "item": [
+        {
+          "name": "Update Progress",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"skillId\": \"{{skill_id}}\",\n  \"score\": 85.5,\n  \"assessmentId\": \"{{assessment_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/progress/update",
+              "host": ["{{base_url}}"],
+              "path": ["progress", "update"]
+            },
+            "description": "Update progress for a skill"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Progress Summary",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/progress/summary",
+              "host": ["{{base_url}}"],
+              "path": ["progress", "summary"]
+            },
+            "description": "Get progress summary for current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Progress by Skill",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/progress/skill/{{skill_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["progress", "skill", "{{skill_id}}"]
+            },
+            "description": "Get progress for a specific skill"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Learning Path",
+      "item": [
+        {
+          "name": "Get Learning Path",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/learning-path",
+              "host": ["{{base_url}}"],
+              "path": ["learning-path"]
+            },
+            "description": "Get current user's learning path"
+          },
+          "response": []
+        },
+        {
+          "name": "Adapt Learning Path",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/learning-path/adapt",
+              "host": ["{{base_url}}"],
+              "path": ["learning-path", "adapt"]
+            },
+            "description": "Trigger learning path adaptation based on progress"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "AI",
+      "item": [
+        {
+          "name": "Explain Answer",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"questionId\": \"{{question_id}}\",\n  \"userAnswer\": \"Selected option text\",\n  \"correctAnswer\": \"Correct option text\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/explain",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "explain"]
+            },
+            "description": "Get AI explanation for a wrong answer"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}
