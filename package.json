@@ -25,6 +25,9 @@
   "prisma": {
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts"
   },
+  "engines": {
+    "node": ">=20.x"
+  },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.2",
