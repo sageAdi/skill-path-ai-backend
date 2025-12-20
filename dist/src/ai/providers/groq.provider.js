@@ -510,138 +510,99 @@ Return JSON in this exact format:
         }
     }
     async suggestUpskilling(currentRole) {
-        const systemPrompt = `You are a career development expert specializing in upskilling strategies for working professionals.
+        try {
+            const prompt = `Given the current career role: "${currentRole}", suggest exactly 4 advancement roles that someone in this position can progress to within their career path. These should be natural next steps for career growth and upskilling.
 
-Your task is to suggest 5-7 highly relevant skills that someone in their current role should learn to:
-1. Excel in their current position
-2. Stay relevant with industry trends
-3. Increase their market value
-4. Prepare for senior responsibilities
+For each advancement role, provide:
+- role: The target advancement role name (e.g., "Senior Software Engineer", "Lead Developer", "Principal Engineer")
+- description: A brief explanation of what this advancement involves and how it differs from the current role (1-2 sentences)
+- transitionDifficulty: One of "Easy", "Medium", or "Hard" based on how difficult the advancement would be
+- commonSkills: An array of 3-5 key skills or competencies needed to advance to this role
 
-Focus on practical, actionable skills with realistic timelines.
+Focus on roles that represent:
+1. Vertical advancement (senior, lead, principal levels)
+2. Specialized advancement (becoming an expert in a specific area)
+3. Leadership advancement (team lead, tech lead, manager roles)
+4. Strategic advancement (architect, consultant, advisor roles)
 
-IMPORTANT: Respond ONLY with a valid JSON object matching this exact structure:
+Return the response as a JSON object with a "transitions" array:
 {
-  "currentRole": "string",
-  "suggestedSkills": [
+  "transitions": [
     {
-      "skillName": "string",
-      "description": "string (brief, 1-2 sentences)",
-      "priority": "high" | "medium" | "low",
-      "estimatedWeeks": number (realistic learning time),
-      "benefits": ["benefit1", "benefit2", "benefit3"],
-      "resources": ["resource1", "resource2", "resource3"]
+      "role": "Role Name",
+      "description": "Brief description",
+      "transitionDifficulty": "Easy|Medium|Hard",
+      "commonSkills": ["Skill1", "Skill2", "Skill3"]
     }
-  ],
-  "recommendations": "string (overall upskilling strategy advice)"
+  ]
 }
 
-Do not include any markdown formatting, code blocks, or extra text. Return only the JSON object.`;
-        const userPrompt = `Generate upskilling suggestions for: ${currentRole}
-
-Consider:
-- Current industry trends and emerging technologies
-- Skills that complement their existing expertise
-- Practical skills that can be learned while working
-- Both technical and soft skills where applicable
-- Realistic learning timelines (most skills: 2-8 weeks)
-
-Prioritize skills that will have the most immediate impact on their performance and career growth.`;
-        try {
+Make sure to provide exactly 4 diverse advancement options that represent realistic career progression paths.`;
             const completion = await this.groq.chat.completions.create({
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    { role: 'user', content: userPrompt },
-                ],
                 model: this.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a career counselor expert specializing in career advancement and upskilling within tech roles. Provide realistic, actionable advancement role suggestions based on the current role. Always return valid JSON with exactly 4 advancement roles.',
+                    },
+                    {
+                        role: 'user',
+                        content: prompt,
+                    },
+                ],
+                response_format: { type: 'json_object' },
                 temperature: 0.7,
-                max_tokens: 2000,
             });
-            const content = completion.choices[0]?.message?.content || '';
+            const content = completion.choices[0]?.message?.content;
             if (!content) {
-                throw new Error('Empty response from AI provider');
+                throw new Error('Empty response from Groq');
             }
-            const cleanedContent = content
-                .trim()
-                .replace(/^```json\n?/, '')
-                .replace(/\n?```$/, '')
-                .trim();
-            const response = JSON.parse(cleanedContent);
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            }
+            catch (parseError) {
+                this.logger.error('Failed to parse JSON response:', parseError);
+                throw new Error('Invalid JSON response from Groq');
+            }
+            const response = parsed;
             if (!response ||
-                typeof response !== 'object' ||
-                !('suggestedSkills' in response) ||
-                !Array.isArray(response.suggestedSkills)) {
-                throw new Error('Invalid response structure from AI provider');
+                !response.transitions ||
+                !Array.isArray(response.transitions)) {
+                throw new Error('Invalid response structure from Groq');
             }
-            const parsedResponse = response;
-            const validPriorities = [
-                'high',
-                'medium',
-                'low',
+            const validDifficulties = [
+                'Easy',
+                'Medium',
+                'Hard',
             ];
-            const sanitizedSkills = parsedResponse
-                .suggestedSkills.map((skill) => {
-                const weeks = typeof skill.estimatedWeeks === 'number'
-                    ? skill.estimatedWeeks
-                    : typeof skill.estimatedWeeks === 'string'
-                        ? parseInt(skill.estimatedWeeks, 10)
-                        : 4;
-                let benefits = [];
-                if (Array.isArray(skill.benefits)) {
-                    benefits = skill.benefits.map(String);
+            const sanitizedTransitions = response.transitions
+                .map((transition) => {
+                const role = transition.role || '';
+                const description = transition.description || '';
+                const difficulty = transition.transitionDifficulty || 'Medium';
+                let commonSkills = [];
+                if (Array.isArray(transition.commonSkills)) {
+                    commonSkills = transition.commonSkills
+                        .map(String)
+                        .filter((s) => s.trim().length > 0);
                 }
-                else if (typeof skill.benefits === 'string') {
-                    try {
-                        const parsed = JSON.parse(skill.benefits);
-                        benefits = Array.isArray(parsed) ? parsed.map(String) : [];
-                    }
-                    catch {
-                        benefits = [];
-                    }
-                }
-                let resources = [];
-                if (Array.isArray(skill.resources)) {
-                    resources = skill.resources.map(String);
-                }
-                else if (typeof skill.resources === 'string') {
-                    try {
-                        const parsed = JSON.parse(skill.resources);
-                        resources = Array.isArray(parsed) ? parsed.map(String) : [];
-                    }
-                    catch {
-                        resources = [];
-                    }
-                }
-                const priority = skill.priority || 'medium';
                 return {
-                    skillName: typeof skill.skillName === 'string' ? skill.skillName.trim() : '',
-                    description: typeof skill.description === 'string'
-                        ? skill.description.trim()
-                        : '',
-                    priority: validPriorities.includes(priority)
-                        ? priority
-                        : 'medium',
-                    estimatedWeeks: isNaN(weeks) ? 4 : Math.max(1, Math.min(52, weeks)),
-                    benefits: benefits.filter((b) => b.trim().length > 0),
-                    resources: resources.filter((r) => r.trim().length > 0),
+                    role: role.trim(),
+                    description: description.trim(),
+                    transitionDifficulty: validDifficulties.includes(difficulty)
+                        ? difficulty
+                        : 'Medium',
+                    commonSkills: commonSkills.length > 0 ? commonSkills : [],
                 };
             })
-                .filter((skill) => skill.skillName &&
-                skill.description &&
-                skill.benefits.length > 0 &&
-                skill.resources.length > 0);
-            if (sanitizedSkills.length === 0) {
-                throw new Error('No valid skills in upskilling response');
+                .filter((transition) => transition.role &&
+                transition.description &&
+                transition.commonSkills.length > 0);
+            if (sanitizedTransitions.length === 0) {
+                throw new Error('No valid advancement roles in response');
             }
-            return {
-                currentRole: typeof parsedResponse.currentRole === 'string'
-                    ? parsedResponse.currentRole.trim()
-                    : currentRole,
-                suggestedSkills: sanitizedSkills,
-                recommendations: typeof parsedResponse.recommendations === 'string'
-                    ? parsedResponse.recommendations.trim()
-                    : 'Focus on skills that align with your career goals and industry demands.',
-            };
+            return sanitizedTransitions.slice(0, 4);
         }
         catch (error) {
             this.logger.error('Error generating upskilling suggestions:', error);

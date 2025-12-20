@@ -1,16 +1,8 @@
-export interface UpskillingSuggestion {
-    skillName: string;
-    description: string;
-    priority: 'high' | 'medium' | 'low';
-    estimatedWeeks: number;
-    benefits: string[];
-    resources: string[];
-}
+import type { CareerTransition } from '../../ai/interfaces/ai-provider.interface';
 export declare class UpskillingSuggestionsRequestDto {
     currentRole: string;
 }
-export interface UpskillingSuggestionsResponseDto {
+export declare class UpskillingSuggestionsResponseDto {
     currentRole: string;
-    suggestedSkills: UpskillingSuggestion[];
-    recommendations: string;
+    suggestedRoles: CareerTransition[];
 }

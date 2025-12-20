@@ -80,23 +80,18 @@ export class UsersService {
 
   /**
    * Get upskilling suggestions for current role
-   * Uses AI (Groq) to generate personalized skill recommendations
+   * Uses AI (Groq) to generate advancement roles (similar to career-transitions format)
    */
   async getUpskillingSuggestions(
     currentRole: string,
   ): Promise<UpskillingSuggestionsResponseDto> {
-    // Use AI to generate upskilling suggestions
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
-    const response = await this.aiService.suggestUpskilling(currentRole);
+    // Use AI to generate advancement role suggestions
+    const suggestedRoles: CareerTransition[] =
+      await this.aiService.suggestUpskilling(currentRole);
 
-    // Map to response DTO
     return {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      currentRole: response.currentRole,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      suggestedSkills: response.suggestedSkills,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-      recommendations: response.recommendations,
+      currentRole,
+      suggestedRoles,
     };
   }
 }

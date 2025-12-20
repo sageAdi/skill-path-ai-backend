@@ -9,7 +9,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpskillingSuggestionsRequestDto = void 0;
+exports.UpskillingSuggestionsResponseDto = exports.UpskillingSuggestionsRequestDto = void 0;
 const class_validator_1 = require("class-validator");
 class UpskillingSuggestionsRequestDto {
     currentRole;
@@ -20,4 +20,9 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], UpskillingSuggestionsRequestDto.prototype, "currentRole", void 0);
+class UpskillingSuggestionsResponseDto {
+    currentRole;
+    suggestedRoles;
+}
+exports.UpskillingSuggestionsResponseDto = UpskillingSuggestionsResponseDto;
 //# sourceMappingURL=upskilling-suggestions.dto.js.map

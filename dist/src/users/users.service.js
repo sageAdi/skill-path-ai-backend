@@ -68,11 +68,10 @@ let UsersService = class UsersService {
         };
     }
     async getUpskillingSuggestions(currentRole) {
-        const response = await this.aiService.suggestUpskilling(currentRole);
+        const suggestedRoles = await this.aiService.suggestUpskilling(currentRole);
         return {
-            currentRole: response.currentRole,
-            suggestedSkills: response.suggestedSkills,
-            recommendations: response.recommendations,
+            currentRole,
+            suggestedRoles,
         };
     }
 };

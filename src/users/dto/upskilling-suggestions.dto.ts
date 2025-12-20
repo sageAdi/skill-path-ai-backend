@@ -1,13 +1,5 @@
 import { IsString, IsNotEmpty } from 'class-validator';
-
-export interface UpskillingSuggestion {
-  skillName: string;
-  description: string;
-  priority: 'high' | 'medium' | 'low';
-  estimatedWeeks: number;
-  benefits: string[];
-  resources: string[];
-}
+import type { CareerTransition } from '../../ai/interfaces/ai-provider.interface';
 
 export class UpskillingSuggestionsRequestDto {
   @IsString()
@@ -15,8 +7,8 @@ export class UpskillingSuggestionsRequestDto {
   currentRole: string;
 }
 
-export interface UpskillingSuggestionsResponseDto {
+// Reuse the same format as career-transitions
+export class UpskillingSuggestionsResponseDto {
   currentRole: string;
-  suggestedSkills: UpskillingSuggestion[];
-  recommendations: string;
+  suggestedRoles: CareerTransition[];
 }
