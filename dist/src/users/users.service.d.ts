@@ -1,6 +1,7 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CareerTransitionsResponseDto } from './dto/career-transitions.dto';
+import { UpskillingSuggestionsResponseDto } from './dto/upskilling-suggestions.dto';
 import { AIService } from '../ai/ai.service';
 export declare class UsersService {
     private prisma;
@@ -23,4 +24,5 @@ export declare class UsersService {
         updatedAt: Date;
     }>;
     getCareerTransitions(currentRole: string): Promise<CareerTransitionsResponseDto>;
+    getUpskillingSuggestions(currentRole: string): Promise<UpskillingSuggestionsResponseDto>;
 }

@@ -5,6 +5,7 @@ import type {
   PathAdjustmentSuggestion,
   CareerTransition,
   CareerRoadmap,
+  UpskillingSuggestionsResponse,
 } from './interfaces/ai-provider.interface';
 
 @Injectable()
@@ -65,5 +66,11 @@ export class AIService {
       targetRole,
       availableSkills,
     );
+  }
+
+  suggestUpskilling(
+    currentRole: string,
+  ): Promise<UpskillingSuggestionsResponse> {
+    return this.aiProvider.suggestUpskilling(currentRole);
   }
 }

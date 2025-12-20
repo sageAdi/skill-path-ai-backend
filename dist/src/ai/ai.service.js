@@ -34,6 +34,9 @@ let AIService = class AIService {
     generateCareerRoadmap(assessmentData, targetRole, availableSkills) {
         return this.aiProvider.generateCareerRoadmap(assessmentData, targetRole, availableSkills);
     }
+    suggestUpskilling(currentRole) {
+        return this.aiProvider.suggestUpskilling(currentRole);
+    }
 };
 exports.AIService = AIService;
 exports.AIService = AIService = __decorate([

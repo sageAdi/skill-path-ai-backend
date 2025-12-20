@@ -34,6 +34,19 @@ export interface CareerRoadmap {
     skills: RoadmapSkill[];
     recommendations: string;
 }
+export interface UpskillingSuggestion {
+    skillName: string;
+    description: string;
+    priority: 'high' | 'medium' | 'low';
+    estimatedWeeks: number;
+    benefits: string[];
+    resources: string[];
+}
+export interface UpskillingSuggestionsResponse {
+    currentRole: string;
+    suggestedSkills: UpskillingSuggestion[];
+    recommendations: string;
+}
 export interface IAIProvider {
     generateQuestions(context: string, skillName?: string, count?: number): Promise<GeneratedQuestion[]>;
     explainAnswer(question: string, userAnswer: string, correctAnswer: string): Promise<string>;
@@ -59,4 +72,5 @@ export interface IAIProvider {
         description?: string;
         difficulty: string;
     }>): Promise<CareerRoadmap>;
+    suggestUpskilling(currentRole: string): Promise<UpskillingSuggestionsResponse>;
 }

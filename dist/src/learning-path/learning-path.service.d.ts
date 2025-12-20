@@ -22,20 +22,20 @@ export declare class LearningPathService {
             };
         } & {
             id: string;
-            status: import("@prisma/client").$Enums.NodeStatus;
             createdAt: Date;
             updatedAt: Date;
+            skillId: string;
+            status: import("@prisma/client").$Enums.NodeStatus;
             order: number;
             nodeType: import("@prisma/client").$Enums.NodeType;
             insertedAt: Date;
-            skillId: string;
             learningPathId: string;
         })[];
     } & {
         id: string;
-        status: import("@prisma/client").$Enums.LearningPathStatus;
         createdAt: Date;
         updatedAt: Date;
+        status: import("@prisma/client").$Enums.LearningPathStatus;
         userId: string;
     }>;
     adaptPath(userId: string): Promise<LearningPathResponse>;

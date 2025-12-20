@@ -7,6 +7,8 @@
 //   CareerTransition,
 //   CareerRoadmap,
 //   RoadmapSkill,
+//   UpskillingSuggestion,
+//   UpskillingSuggestionsResponse,
 // } from '../interfaces/ai-provider.interface';
 
 // // Type definitions for Ollama API responses
@@ -659,6 +661,123 @@
 //     } catch (error) {
 //       this.logger.error('Error generating career roadmap:', error);
 //       throw new Error('Failed to generate career roadmap');
+//     }
+//   }
+
+//   /**
+//    * Generate upskilling suggestions for current role
+//    */
+//   async suggestUpskilling(
+//     currentRole: string,
+//   ): Promise<UpskillingSuggestionsResponse> {
+//     const systemPrompt = `You are a career development expert specializing in upskilling strategies.
+// Suggest 5-7 relevant skills for someone to excel in their current role.
+// Respond ONLY with valid JSON matching this structure:
+// {
+//   "currentRole": "string",
+//   "suggestedSkills": [
+//     {
+//       "skillName": "string",
+//       "description": "string",
+//       "priority": "high" | "medium" | "low",
+//       "estimatedWeeks": number,
+//       "benefits": ["string"],
+//       "resources": ["string"]
+//     }
+//   ],
+//   "recommendations": "string"
+// }`;
+
+//     const userPrompt = `Generate upskilling suggestions for: ${currentRole}`;
+
+//     try {
+//       const response = await this.generate(systemPrompt, userPrompt);
+//       const cleanedContent = response
+//         .trim()
+//         .replace(/^```json\n?/, '')
+//         .replace(/\n?```$/, '')
+//         .trim();
+
+//       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+//       const upskillResponse: unknown = JSON.parse(cleanedContent);
+
+//       if (
+//         !upskillResponse ||
+//         typeof upskillResponse !== 'object' ||
+//         !('suggestedSkills' in upskillResponse)
+//       ) {
+//         throw new Error('Invalid response structure');
+//       }
+
+//       interface RawUpskillingSuggestion {
+//         skillName?: unknown;
+//         description?: unknown;
+//         priority?: unknown;
+//         estimatedWeeks?: unknown;
+//         benefits?: unknown;
+//         resources?: unknown;
+//       }
+
+//       interface ParsedResponse {
+//         currentRole?: unknown;
+//         suggestedSkills?: RawUpskillingSuggestion[];
+//         recommendations?: unknown;
+//       }
+
+//       const parsedResponse = upskillResponse as ParsedResponse;
+//       const validPriorities: Array<'high' | 'medium' | 'low'> = [
+//         'high',
+//         'medium',
+//         'low',
+//       ];
+
+//       const sanitizedSkills = (parsedResponse.suggestedSkills || [])
+//         .map((skill) => {
+//           const weeks = parseInt(String(skill.estimatedWeeks || 4), 10);
+//           const benefits = Array.isArray(skill.benefits)
+//             ? skill.benefits.map(String)
+//             : [];
+//           const resources = Array.isArray(skill.resources)
+//             ? skill.resources.map(String)
+//             : [];
+//           const priority = skill.priority || 'medium';
+
+//           return {
+//             skillName: String(skill.skillName || '').trim(),
+//             description: String(skill.description || '').trim(),
+//             priority: validPriorities.includes(
+//               priority as UpskillingSuggestion['priority'],
+//             )
+//               ? (priority as UpskillingSuggestion['priority'])
+//               : 'medium',
+//             estimatedWeeks: isNaN(weeks) ? 4 : Math.max(1, Math.min(52, weeks)),
+//             benefits: benefits.filter((b) => b.trim().length > 0),
+//             resources: resources.filter((r) => r.trim().length > 0),
+//           };
+//         })
+//         .filter(
+//           (skill) =>
+//             skill.skillName &&
+//             skill.description &&
+//             skill.benefits.length > 0 &&
+//             skill.resources.length > 0,
+//         );
+
+//       if (sanitizedSkills.length === 0) {
+//         throw new Error('No valid skills in upskilling response');
+//       }
+
+//       return {
+//         currentRole: String(parsedResponse.currentRole || currentRole).trim(),
+//         suggestedSkills: sanitizedSkills,
+//         recommendations: String(
+//           parsedResponse.recommendations ||
+//             'Focus on skills that align with your career goals.',
+//         ).trim(),
+//       };
+//     } catch (error) {
+//       this.logger.error('Error generating upskilling suggestions:', error);
+//       throw new Error('Failed to generate upskilling suggestions');
 //     }
 //   }
 // }

@@ -35,6 +35,12 @@ let UsersController = class UsersController {
         }
         return this.usersService.getCareerTransitions(currentRole);
     }
+    async getUpskillingSuggestions(currentRole) {
+        if (!currentRole || currentRole.trim() === '') {
+            throw new common_1.BadRequestException('currentRole query parameter is required');
+        }
+        return await this.usersService.getUpskillingSuggestions(currentRole);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -59,6 +65,13 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", Promise)
 ], UsersController.prototype, "getCareerTransitions", null);
+__decorate([
+    (0, common_1.Get)('upskilling-suggestions'),
+    __param(0, (0, common_1.Query)('currentRole')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getUpskillingSuggestions", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

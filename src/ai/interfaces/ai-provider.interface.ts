@@ -44,6 +44,21 @@ export interface CareerRoadmap {
   recommendations: string;
 }
 
+export interface UpskillingSuggestion {
+  skillName: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  estimatedWeeks: number;
+  benefits: string[];
+  resources: string[];
+}
+
+export interface UpskillingSuggestionsResponse {
+  currentRole: string;
+  suggestedSkills: UpskillingSuggestion[];
+  recommendations: string;
+}
+
 export interface IAIProvider {
   /**
    * Generate assessment questions for a role or skill
@@ -99,4 +114,11 @@ export interface IAIProvider {
       difficulty: string;
     }>,
   ): Promise<CareerRoadmap>;
+
+  /**
+   * Generate upskilling suggestions for current role
+   */
+  suggestUpskilling(
+    currentRole: string,
+  ): Promise<UpskillingSuggestionsResponse>;
 }

@@ -1,6 +1,7 @@
 import { UsersService } from './users.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { CareerTransitionsResponseDto } from './dto/career-transitions.dto';
+import { UpskillingSuggestionsResponseDto } from './dto/upskilling-suggestions.dto';
 export declare class UsersController {
     private readonly usersService;
     constructor(usersService: UsersService);
@@ -25,4 +26,5 @@ export declare class UsersController {
         updatedAt: Date;
     }>;
     getCareerTransitions(currentRole: string): Promise<CareerTransitionsResponseDto>;
+    getUpskillingSuggestions(currentRole: string): Promise<UpskillingSuggestionsResponseDto>;
 }

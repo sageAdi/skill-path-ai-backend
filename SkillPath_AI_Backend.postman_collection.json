@@ -170,6 +170,68 @@
             "description": "Update user profile"
           },
           "response": []
+        },
+        {
+          "name": "Get Career Transitions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/career-transitions?currentRole=Software Engineer",
+              "host": ["{{base_url}}"],
+              "path": ["users", "career-transitions"],
+              "query": [
+                {
+                  "key": "currentRole",
+                  "value": "Software Engineer",
+                  "description": "Current job role"
+                }
+              ]
+            },
+            "description": "Get AI-generated career transition suggestions based on current role. Returns 4 suggested career paths with transition difficulty and common skills."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Upskilling Suggestions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/upskilling-suggestions?currentRole=Backend Developer",
+              "host": ["{{base_url}}"],
+              "path": ["users", "upskilling-suggestions"],
+              "query": [
+                {
+                  "key": "currentRole",
+                  "value": "Backend Developer",
+                  "description": "Current job role"
+                }
+              ]
+            },
+            "description": "Get AI-generated upskilling suggestions for current role. Returns 5-7 relevant skills to master with priorities, estimated learning time, benefits, and resources."
+          },
+          "response": []
         }
       ]
     },
@@ -706,6 +768,55 @@
               "path": ["learning-path", "adapt"]
             },
             "description": "Trigger learning path adaptation based on progress"
+          },
+          "response": []
+        },
+        {
+          "name": "Generate Roadmap",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.learningPathId) {",
+                  "        pm.environment.set('learning_path_id', response.learningPathId);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{auth_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assessmentId\": \"{{assessment_id}}\",\n  \"targetRole\": \"Senior Software Engineer\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/learning-path/generate-roadmap",
+              "host": ["{{base_url}}"],
+              "path": ["learning-path", "generate-roadmap"]
+            },
+            "description": "Generate a comprehensive AI-powered learning roadmap based on completed assessment results. Creates a new learning path in the database with skills, priorities, timelines, and resources. Requires a completed assessment ID."
           },
           "response": []
         }

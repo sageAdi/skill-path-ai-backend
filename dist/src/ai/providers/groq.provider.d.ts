@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { IAIProvider, GeneratedQuestion, PathAdjustmentSuggestion, CareerTransition, CareerRoadmap } from '../interfaces/ai-provider.interface';
+import { IAIProvider, GeneratedQuestion, PathAdjustmentSuggestion, CareerTransition, CareerRoadmap, UpskillingSuggestionsResponse } from '../interfaces/ai-provider.interface';
 export declare class GroqProvider implements IAIProvider {
     private configService;
     private readonly logger;
@@ -30,4 +30,5 @@ export declare class GroqProvider implements IAIProvider {
         description?: string;
         difficulty: string;
     }>): Promise<CareerRoadmap>;
+    suggestUpskilling(currentRole: string): Promise<UpskillingSuggestionsResponse>;
 }

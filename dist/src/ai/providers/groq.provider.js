@@ -509,6 +509,145 @@ Return JSON in this exact format:
             throw new Error('Failed to generate career roadmap');
         }
     }
+    async suggestUpskilling(currentRole) {
+        const systemPrompt = `You are a career development expert specializing in upskilling strategies for working professionals.
+
+Your task is to suggest 5-7 highly relevant skills that someone in their current role should learn to:
+1. Excel in their current position
+2. Stay relevant with industry trends
+3. Increase their market value
+4. Prepare for senior responsibilities
+
+Focus on practical, actionable skills with realistic timelines.
+
+IMPORTANT: Respond ONLY with a valid JSON object matching this exact structure:
+{
+  "currentRole": "string",
+  "suggestedSkills": [
+    {
+      "skillName": "string",
+      "description": "string (brief, 1-2 sentences)",
+      "priority": "high" | "medium" | "low",
+      "estimatedWeeks": number (realistic learning time),
+      "benefits": ["benefit1", "benefit2", "benefit3"],
+      "resources": ["resource1", "resource2", "resource3"]
+    }
+  ],
+  "recommendations": "string (overall upskilling strategy advice)"
+}
+
+Do not include any markdown formatting, code blocks, or extra text. Return only the JSON object.`;
+        const userPrompt = `Generate upskilling suggestions for: ${currentRole}
+
+Consider:
+- Current industry trends and emerging technologies
+- Skills that complement their existing expertise
+- Practical skills that can be learned while working
+- Both technical and soft skills where applicable
+- Realistic learning timelines (most skills: 2-8 weeks)
+
+Prioritize skills that will have the most immediate impact on their performance and career growth.`;
+        try {
+            const completion = await this.groq.chat.completions.create({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userPrompt },
+                ],
+                model: this.model,
+                temperature: 0.7,
+                max_tokens: 2000,
+            });
+            const content = completion.choices[0]?.message?.content || '';
+            if (!content) {
+                throw new Error('Empty response from AI provider');
+            }
+            const cleanedContent = content
+                .trim()
+                .replace(/^```json\n?/, '')
+                .replace(/\n?```$/, '')
+                .trim();
+            const response = JSON.parse(cleanedContent);
+            if (!response ||
+                typeof response !== 'object' ||
+                !('suggestedSkills' in response) ||
+                !Array.isArray(response.suggestedSkills)) {
+                throw new Error('Invalid response structure from AI provider');
+            }
+            const parsedResponse = response;
+            const validPriorities = [
+                'high',
+                'medium',
+                'low',
+            ];
+            const sanitizedSkills = parsedResponse
+                .suggestedSkills.map((skill) => {
+                const weeks = typeof skill.estimatedWeeks === 'number'
+                    ? skill.estimatedWeeks
+                    : typeof skill.estimatedWeeks === 'string'
+                        ? parseInt(skill.estimatedWeeks, 10)
+                        : 4;
+                let benefits = [];
+                if (Array.isArray(skill.benefits)) {
+                    benefits = skill.benefits.map(String);
+                }
+                else if (typeof skill.benefits === 'string') {
+                    try {
+                        const parsed = JSON.parse(skill.benefits);
+                        benefits = Array.isArray(parsed) ? parsed.map(String) : [];
+                    }
+                    catch {
+                        benefits = [];
+                    }
+                }
+                let resources = [];
+                if (Array.isArray(skill.resources)) {
+                    resources = skill.resources.map(String);
+                }
+                else if (typeof skill.resources === 'string') {
+                    try {
+                        const parsed = JSON.parse(skill.resources);
+                        resources = Array.isArray(parsed) ? parsed.map(String) : [];
+                    }
+                    catch {
+                        resources = [];
+                    }
+                }
+                const priority = skill.priority || 'medium';
+                return {
+                    skillName: typeof skill.skillName === 'string' ? skill.skillName.trim() : '',
+                    description: typeof skill.description === 'string'
+                        ? skill.description.trim()
+                        : '',
+                    priority: validPriorities.includes(priority)
+                        ? priority
+                        : 'medium',
+                    estimatedWeeks: isNaN(weeks) ? 4 : Math.max(1, Math.min(52, weeks)),
+                    benefits: benefits.filter((b) => b.trim().length > 0),
+                    resources: resources.filter((r) => r.trim().length > 0),
+                };
+            })
+                .filter((skill) => skill.skillName &&
+                skill.description &&
+                skill.benefits.length > 0 &&
+                skill.resources.length > 0);
+            if (sanitizedSkills.length === 0) {
+                throw new Error('No valid skills in upskilling response');
+            }
+            return {
+                currentRole: typeof parsedResponse.currentRole === 'string'
+                    ? parsedResponse.currentRole.trim()
+                    : currentRole,
+                suggestedSkills: sanitizedSkills,
+                recommendations: typeof parsedResponse.recommendations === 'string'
+                    ? parsedResponse.recommendations.trim()
+                    : 'Focus on skills that align with your career goals and industry demands.',
+            };
+        }
+        catch (error) {
+            this.logger.error('Error generating upskilling suggestions:', error);
+            throw new Error('Failed to generate upskilling suggestions');
+        }
+    }
 };
 exports.GroqProvider = GroqProvider;
 exports.GroqProvider = GroqProvider = GroqProvider_1 = __decorate([
