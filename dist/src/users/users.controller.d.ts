@@ -7,20 +7,20 @@ export declare class UsersController {
     getProfile(user: {
         id: string;
     }): Promise<{
-        email: string;
-        learningRole: string | null;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.UserRole;
+        learningRole: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;
     updateProfile(user: {
         id: string;
     }, updateProfileDto: UpdateProfileDto): Promise<{
-        email: string;
-        learningRole: string | null;
         id: string;
+        email: string;
         role: import("@prisma/client").$Enums.UserRole;
+        learningRole: string | null;
         createdAt: Date;
         updatedAt: Date;
     }>;

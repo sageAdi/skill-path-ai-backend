@@ -28,6 +28,22 @@ export interface CareerTransition {
   commonSkills: string[];
 }
 
+export interface RoadmapSkill {
+  skillName: string;
+  estimatedWeeks: number;
+  priority: 'high' | 'medium' | 'low';
+  resources: string[];
+  milestones: string[];
+  prerequisites?: string[];
+}
+
+export interface CareerRoadmap {
+  targetRole: string;
+  totalEstimatedWeeks: number;
+  skills: RoadmapSkill[];
+  recommendations: string;
+}
+
 export interface IAIProvider {
   /**
    * Generate assessment questions for a role or skill
@@ -64,4 +80,23 @@ export interface IAIProvider {
    * Generate career transition suggestions based on current role
    */
   suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
+
+  /**
+   * Generate comprehensive career roadmap based on assessment and target role
+   */
+  generateCareerRoadmap(
+    assessmentData: {
+      score: number;
+      totalQuestions: number;
+      correctAnswers: number;
+      weakAreas: string[];
+      strengths: string[];
+    },
+    targetRole: string,
+    availableSkills: Array<{
+      name: string;
+      description?: string;
+      difficulty: string;
+    }>,
+  ): Promise<CareerRoadmap>;
 }

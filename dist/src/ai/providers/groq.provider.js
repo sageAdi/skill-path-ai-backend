@@ -325,6 +325,190 @@ Make sure to provide exactly 4 diverse transition options that cover different c
             throw new Error('Failed to generate career transition suggestions');
         }
     }
+    async generateCareerRoadmap(assessmentData, targetRole, availableSkills) {
+        try {
+            const weakAreasStr = assessmentData.weakAreas.length > 0
+                ? assessmentData.weakAreas.join(', ')
+                : 'None identified';
+            const strengthsStr = assessmentData.strengths.length > 0
+                ? assessmentData.strengths.join(', ')
+                : 'Assessment in progress';
+            const skillsList = availableSkills
+                .map((s) => `- ${s.name} (${s.difficulty})${s.description ? ': ' + s.description : ''}`)
+                .join('\n');
+            const prompt = `You are a career development expert. Generate a comprehensive learning roadmap.
+
+Current Assessment Results:
+- Score: ${assessmentData.score}%
+- Correct: ${assessmentData.correctAnswers}/${assessmentData.totalQuestions}
+- Weak Areas: ${weakAreasStr}
+- Strengths: ${strengthsStr}
+
+Target Role: ${targetRole}
+
+Available Skills to choose from:
+${skillsList}
+
+Generate a personalized learning roadmap with:
+1. Select 8-12 relevant skills from the available list that are most important for "${targetRole}"
+2. Order them logically (prerequisites first, foundational skills before advanced)
+3. Estimate realistic learning time in weeks for each skill
+4. Assign priority (high/medium/low) based on importance for the target role
+5. Suggest 2-3 learning resources per skill WITH ACTUAL URLs (courses, documentation, tutorials)
+6. Define 2-3 achievable milestones per skill
+7. Provide overall recommendations based on the assessment results
+
+IMPORTANT: 
+- Only select skills from the available list provided above. Use exact skill names.
+- For resources, provide actual clickable URLs in format "Resource Name - https://example.com/path"
+
+Return JSON in this exact format:
+{
+  "targetRole": "${targetRole}",
+  "totalEstimatedWeeks": <sum of all estimated weeks>,
+  "skills": [
+    {
+      "skillName": "<exact name from available skills>",
+      "estimatedWeeks": <number>,
+      "priority": "high" | "medium" | "low",
+      "resources": [
+        "MDN Web Docs - https://developer.mozilla.org/",
+        "FreeCodeCamp Course - https://www.freecodecamp.org/learn",
+        "Official Documentation - https://docs.example.com"
+      ],
+      "milestones": ["<milestone 1>", "<milestone 2>", "<milestone 3>"],
+      "prerequisites": ["<optional prerequisite skill names>"]
+    }
+  ],
+  "recommendations": "<personalized recommendations based on assessment>"
+}`;
+            const completion = await this.groq.chat.completions.create({
+                model: this.model,
+                messages: [
+                    {
+                        role: 'system',
+                        content: 'You are a career development expert specializing in creating personalized learning roadmaps. Provide realistic, actionable learning paths based on assessment results and career goals. Always return valid JSON.',
+                    },
+                    {
+                        role: 'user',
+                        content: prompt,
+                    },
+                ],
+                response_format: { type: 'json_object' },
+                temperature: 0.7,
+            });
+            const content = completion.choices[0]?.message?.content;
+            if (!content) {
+                throw new Error('Empty response from Groq');
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(content);
+            }
+            catch {
+                const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) ||
+                    content.match(/```\s*([\s\S]*?)\s*```/);
+                if (jsonMatch) {
+                    parsed = JSON.parse(jsonMatch[1]);
+                }
+                else {
+                    throw new Error('Failed to parse JSON response from Groq');
+                }
+            }
+            const response = parsed;
+            if (!response.skills || !Array.isArray(response.skills)) {
+                throw new Error('Invalid roadmap response: missing skills array');
+            }
+            const validPriorities = [
+                'high',
+                'medium',
+                'low',
+            ];
+            const sanitizedSkills = response.skills
+                .map((skill) => {
+                const weeks = typeof skill.estimatedWeeks === 'number'
+                    ? skill.estimatedWeeks
+                    : typeof skill.estimatedWeeks === 'string'
+                        ? parseInt(skill.estimatedWeeks, 10)
+                        : 1;
+                let resources = [];
+                if (Array.isArray(skill.resources)) {
+                    resources = skill.resources.map(String);
+                }
+                else if (typeof skill.resources === 'string') {
+                    try {
+                        const parsed = JSON.parse(skill.resources);
+                        resources = Array.isArray(parsed) ? parsed.map(String) : [];
+                    }
+                    catch {
+                        resources = [];
+                    }
+                }
+                let milestones = [];
+                if (Array.isArray(skill.milestones)) {
+                    milestones = skill.milestones.map(String);
+                }
+                else if (typeof skill.milestones === 'string') {
+                    try {
+                        const parsed = JSON.parse(skill.milestones);
+                        milestones = Array.isArray(parsed) ? parsed.map(String) : [];
+                    }
+                    catch {
+                        milestones = [];
+                    }
+                }
+                let prerequisites = [];
+                if (Array.isArray(skill.prerequisites)) {
+                    prerequisites = skill.prerequisites.map(String);
+                }
+                else if (typeof skill.prerequisites === 'string') {
+                    try {
+                        const parsed = JSON.parse(skill.prerequisites);
+                        prerequisites = Array.isArray(parsed) ? parsed.map(String) : [];
+                    }
+                    catch {
+                        prerequisites = [];
+                    }
+                }
+                const priority = skill.priority || 'medium';
+                return {
+                    skillName: String(skill.skillName || '').trim(),
+                    estimatedWeeks: isNaN(weeks) ? 1 : Math.max(1, weeks),
+                    priority: validPriorities.includes(priority)
+                        ? priority
+                        : 'medium',
+                    resources: resources.filter((r) => r.trim().length > 0),
+                    milestones: milestones.filter((m) => m.trim().length > 0),
+                    prerequisites: prerequisites.filter((p) => p.trim().length > 0),
+                };
+            })
+                .filter((skill) => skill.skillName &&
+                skill.estimatedWeeks > 0 &&
+                skill.resources.length > 0 &&
+                skill.milestones.length > 0);
+            if (sanitizedSkills.length === 0) {
+                throw new Error('No valid skills in roadmap response');
+            }
+            const totalWeeks = sanitizedSkills.reduce((sum, skill) => sum + skill.estimatedWeeks, 0);
+            const totalEstimatedWeeks = typeof response.totalEstimatedWeeks === 'number'
+                ? response.totalEstimatedWeeks
+                : typeof response.totalEstimatedWeeks === 'string'
+                    ? parseInt(response.totalEstimatedWeeks, 10)
+                    : totalWeeks;
+            return {
+                targetRole: String(response.targetRole || targetRole).trim(),
+                totalEstimatedWeeks: isNaN(totalEstimatedWeeks)
+                    ? totalWeeks
+                    : totalEstimatedWeeks,
+                skills: sanitizedSkills,
+                recommendations: String(response.recommendations || 'Focus on building a strong foundation.').trim(),
+            };
+        }
+        catch (error) {
+            this.logger.error('Error generating career roadmap:', error);
+            throw new Error('Failed to generate career roadmap');
+        }
+    }
 };
 exports.GroqProvider = GroqProvider;
 exports.GroqProvider = GroqProvider = GroqProvider_1 = __decorate([

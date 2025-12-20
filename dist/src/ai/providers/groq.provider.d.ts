@@ -1,5 +1,5 @@
 import { ConfigService } from '@nestjs/config';
-import { IAIProvider, GeneratedQuestion, PathAdjustmentSuggestion, CareerTransition } from '../interfaces/ai-provider.interface';
+import { IAIProvider, GeneratedQuestion, PathAdjustmentSuggestion, CareerTransition, CareerRoadmap } from '../interfaces/ai-provider.interface';
 export declare class GroqProvider implements IAIProvider {
     private configService;
     private readonly logger;
@@ -19,4 +19,15 @@ export declare class GroqProvider implements IAIProvider {
         order: number;
     }>): Promise<PathAdjustmentSuggestion[]>;
     suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
+    generateCareerRoadmap(assessmentData: {
+        score: number;
+        totalQuestions: number;
+        correctAnswers: number;
+        weakAreas: string[];
+        strengths: string[];
+    }, targetRole: string, availableSkills: Array<{
+        name: string;
+        description?: string;
+        difficulty: string;
+    }>): Promise<CareerRoadmap>;
 }

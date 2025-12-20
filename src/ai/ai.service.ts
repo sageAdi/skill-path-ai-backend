@@ -4,6 +4,7 @@ import type {
   GeneratedQuestion,
   PathAdjustmentSuggestion,
   CareerTransition,
+  CareerRoadmap,
 } from './interfaces/ai-provider.interface';
 
 @Injectable()
@@ -42,5 +43,27 @@ export class AIService {
 
   suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]> {
     return this.aiProvider.suggestCareerTransitions(currentRole);
+  }
+
+  generateCareerRoadmap(
+    assessmentData: {
+      score: number;
+      totalQuestions: number;
+      correctAnswers: number;
+      weakAreas: string[];
+      strengths: string[];
+    },
+    targetRole: string,
+    availableSkills: Array<{
+      name: string;
+      description?: string;
+      difficulty: string;
+    }>,
+  ): Promise<CareerRoadmap> {
+    return this.aiProvider.generateCareerRoadmap(
+      assessmentData,
+      targetRole,
+      availableSkills,
+    );
   }
 }

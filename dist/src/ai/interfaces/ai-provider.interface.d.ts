@@ -20,6 +20,20 @@ export interface CareerTransition {
     transitionDifficulty: 'Easy' | 'Medium' | 'Hard';
     commonSkills: string[];
 }
+export interface RoadmapSkill {
+    skillName: string;
+    estimatedWeeks: number;
+    priority: 'high' | 'medium' | 'low';
+    resources: string[];
+    milestones: string[];
+    prerequisites?: string[];
+}
+export interface CareerRoadmap {
+    targetRole: string;
+    totalEstimatedWeeks: number;
+    skills: RoadmapSkill[];
+    recommendations: string;
+}
 export interface IAIProvider {
     generateQuestions(context: string, skillName?: string, count?: number): Promise<GeneratedQuestion[]>;
     explainAnswer(question: string, userAnswer: string, correctAnswer: string): Promise<string>;
@@ -34,4 +48,15 @@ export interface IAIProvider {
         order: number;
     }>): Promise<PathAdjustmentSuggestion[]>;
     suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
+    generateCareerRoadmap(assessmentData: {
+        score: number;
+        totalQuestions: number;
+        correctAnswers: number;
+        weakAreas: string[];
+        strengths: string[];
+    }, targetRole: string, availableSkills: Array<{
+        name: string;
+        description?: string;
+        difficulty: string;
+    }>): Promise<CareerRoadmap>;
 }

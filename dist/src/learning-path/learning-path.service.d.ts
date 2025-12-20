@@ -2,6 +2,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ProgressService } from '../progress/progress.service';
 import { AIService } from '../ai/ai.service';
 import { LearningPathResponse } from './interfaces/path-node.interface';
+import { GenerateRoadmapDto, GenerateRoadmapResponseDto } from './dto/generate-roadmap.dto';
 export declare class LearningPathService {
     private prisma;
     private progressService;
@@ -21,25 +22,27 @@ export declare class LearningPathService {
             };
         } & {
             id: string;
+            status: import("@prisma/client").$Enums.NodeStatus;
             createdAt: Date;
             updatedAt: Date;
-            skillId: string;
-            status: import("@prisma/client").$Enums.NodeStatus;
             order: number;
             nodeType: import("@prisma/client").$Enums.NodeType;
             insertedAt: Date;
+            skillId: string;
             learningPathId: string;
         })[];
     } & {
         id: string;
+        status: import("@prisma/client").$Enums.LearningPathStatus;
         createdAt: Date;
         updatedAt: Date;
         userId: string;
-        status: import("@prisma/client").$Enums.LearningPathStatus;
     }>;
     adaptPath(userId: string): Promise<LearningPathResponse>;
     private insertRevisionNode;
     private insertMicroPracticeNode;
     private shiftNodeOrders;
     private mapToResponse;
+    generateRoadmap(userId: string, dto: GenerateRoadmapDto): Promise<GenerateRoadmapResponseDto>;
+    private extractTopicFromQuestion;
 }

@@ -17,6 +17,7 @@ const common_1 = require("@nestjs/common");
 const learning_path_service_1 = require("./learning-path.service");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const current_user_decorator_1 = require("../common/decorators/current-user.decorator");
+const generate_roadmap_dto_1 = require("./dto/generate-roadmap.dto");
 let LearningPathController = class LearningPathController {
     learningPathService;
     constructor(learningPathService) {
@@ -27,6 +28,9 @@ let LearningPathController = class LearningPathController {
     }
     adaptPath(user) {
         return this.learningPathService.adaptPath(user.id);
+    }
+    generateRoadmap(user, dto) {
+        return this.learningPathService.generateRoadmap(user.id, dto);
     }
 };
 exports.LearningPathController = LearningPathController;
@@ -44,6 +48,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], LearningPathController.prototype, "adaptPath", null);
+__decorate([
+    (0, common_1.Post)('generate-roadmap'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)()),
+    __param(1, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, generate_roadmap_dto_1.GenerateRoadmapDto]),
+    __metadata("design:returntype", Promise)
+], LearningPathController.prototype, "generateRoadmap", null);
 exports.LearningPathController = LearningPathController = __decorate([
     (0, common_1.Controller)('learning-path'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

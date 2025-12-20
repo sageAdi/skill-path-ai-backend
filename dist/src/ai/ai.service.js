@@ -31,6 +31,9 @@ let AIService = class AIService {
     suggestCareerTransitions(currentRole) {
         return this.aiProvider.suggestCareerTransitions(currentRole);
     }
+    generateCareerRoadmap(assessmentData, targetRole, availableSkills) {
+        return this.aiProvider.generateCareerRoadmap(assessmentData, targetRole, availableSkills);
+    }
 };
 exports.AIService = AIService;
 exports.AIService = AIService = __decorate([

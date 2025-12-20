@@ -265,6 +265,218 @@ let LearningPathService = class LearningPathService {
             updatedAt: learningPath.updatedAt,
         };
     }
+    async generateRoadmap(userId, dto) {
+        const assessment = await this.prisma.assessment.findUnique({
+            where: { id: dto.assessmentId },
+            include: {
+                questions: {
+                    orderBy: {
+                        order: 'asc',
+                    },
+                },
+                user: true,
+            },
+        });
+        if (!assessment) {
+            throw new common_1.NotFoundException('Assessment not found');
+        }
+        if (assessment.userId !== userId) {
+            throw new common_1.BadRequestException('Assessment does not belong to this user');
+        }
+        if (assessment.status !== client_1.AssessmentStatus.COMPLETED) {
+            throw new common_1.BadRequestException('Assessment must be completed before generating a roadmap');
+        }
+        const answers = await this.prisma.assessmentAnswer.findMany({
+            where: {
+                userId,
+                questionId: {
+                    in: assessment.questions.map((q) => q.id),
+                },
+            },
+            include: {
+                question: true,
+            },
+        });
+        if (answers.length === 0) {
+            throw new common_1.BadRequestException('No answers found for this assessment');
+        }
+        const totalQuestions = assessment.questions.length;
+        const correctAnswers = answers.filter((a) => a.isCorrect).length;
+        const score = totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+        const weakAreas = [];
+        const strengths = [];
+        answers.forEach((answer) => {
+            const questionText = answer.question.question;
+            const topic = this.extractTopicFromQuestion(questionText);
+            if (!answer.isCorrect && !weakAreas.includes(topic)) {
+                weakAreas.push(topic);
+            }
+            else if (answer.isCorrect && !strengths.includes(topic)) {
+                strengths.push(topic);
+            }
+        });
+        const availableSkills = await this.prisma.skill.findMany({
+            include: {
+                prerequisites: {
+                    include: {
+                        prerequisite: true,
+                    },
+                },
+            },
+            orderBy: {
+                difficulty: 'asc',
+            },
+        });
+        if (availableSkills.length === 0) {
+            throw new common_1.NotFoundException('No skills available for roadmap generation');
+        }
+        const aiRoadmap = await this.aiService.generateCareerRoadmap({
+            score: Math.round(score * 100) / 100,
+            totalQuestions,
+            correctAnswers,
+            weakAreas,
+            strengths,
+        }, dto.targetRole, availableSkills.map((s) => ({
+            name: s.name,
+            description: s.description || undefined,
+            difficulty: s.difficulty,
+        })));
+        const roadmapNodes = [];
+        let order = 1;
+        const skillsToCreate = [];
+        for (const aiSkill of aiRoadmap.skills) {
+            const matchedSkill = availableSkills.find((s) => s.name.toLowerCase() === aiSkill.skillName.toLowerCase());
+            if (!matchedSkill) {
+                const difficulty = aiSkill.priority === 'high'
+                    ? 'BEGINNER'
+                    : aiSkill.priority === 'low'
+                        ? 'ADVANCED'
+                        : 'INTERMEDIATE';
+                skillsToCreate.push({
+                    name: aiSkill.skillName,
+                    difficulty,
+                });
+            }
+        }
+        if (skillsToCreate.length > 0) {
+            console.log(`Creating ${skillsToCreate.length} missing skills in database:`, skillsToCreate.map((s) => s.name).join(', '));
+            for (const skillData of skillsToCreate) {
+                try {
+                    const newSkill = await this.prisma.skill.create({
+                        data: {
+                            name: skillData.name,
+                            difficulty: skillData.difficulty,
+                            description: `AI-suggested skill for ${dto.targetRole}`,
+                        },
+                        include: {
+                            prerequisites: {
+                                include: {
+                                    prerequisite: true,
+                                },
+                            },
+                        },
+                    });
+                    availableSkills.push(newSkill);
+                }
+                catch (error) {
+                    const existingSkill = await this.prisma.skill.findUnique({
+                        where: { name: skillData.name },
+                        include: {
+                            prerequisites: {
+                                include: {
+                                    prerequisite: true,
+                                },
+                            },
+                        },
+                    });
+                    if (existingSkill) {
+                        availableSkills.push(existingSkill);
+                    }
+                    else {
+                        console.error(`Failed to create skill: ${skillData.name}`, error);
+                    }
+                }
+            }
+        }
+        for (const aiSkill of aiRoadmap.skills) {
+            const matchedSkill = availableSkills.find((s) => s.name.toLowerCase() === aiSkill.skillName.toLowerCase());
+            if (matchedSkill) {
+                roadmapNodes.push({
+                    skillId: matchedSkill.id,
+                    skillName: matchedSkill.name,
+                    order: order++,
+                    estimatedWeeks: aiSkill.estimatedWeeks,
+                    priority: aiSkill.priority,
+                    resources: aiSkill.resources,
+                    milestones: aiSkill.milestones,
+                });
+            }
+            else {
+                console.warn(`Skill "${aiSkill.skillName}" still not found after creation attempt`);
+            }
+        }
+        if (roadmapNodes.length === 0) {
+            throw new common_1.BadRequestException('Failed to create learning path. Please try again or contact support.');
+        }
+        const learningPath = await this.prisma.learningPath.create({
+            data: {
+                userId,
+                status: client_1.LearningPathStatus.ACTIVE,
+                nodes: {
+                    create: roadmapNodes.map((node) => ({
+                        skillId: node.skillId,
+                        order: node.order,
+                        nodeType: path_node_interface_1.NodeType.SKILL,
+                        status: client_1.NodeStatus.PENDING,
+                    })),
+                },
+            },
+            include: {
+                nodes: {
+                    include: {
+                        skill: true,
+                    },
+                    orderBy: {
+                        order: 'asc',
+                    },
+                },
+            },
+        });
+        return {
+            learningPathId: learningPath.id,
+            targetRole: dto.targetRole,
+            totalEstimatedWeeks: aiRoadmap.totalEstimatedWeeks,
+            nodes: roadmapNodes,
+            recommendations: aiRoadmap.recommendations,
+            createdAt: learningPath.createdAt,
+        };
+    }
+    extractTopicFromQuestion(question) {
+        const keywords = [
+            'JavaScript',
+            'TypeScript',
+            'React',
+            'Node.js',
+            'API',
+            'Database',
+            'SQL',
+            'NoSQL',
+            'Docker',
+            'Git',
+            'Testing',
+            'Security',
+            'Performance',
+            'CSS',
+            'HTML',
+        ];
+        for (const keyword of keywords) {
+            if (question.toLowerCase().includes(keyword.toLowerCase())) {
+                return keyword;
+            }
+        }
+        const words = question.split(' ').slice(0, 3);
+        return words.join(' ');
+    }
 };
 exports.LearningPathService = LearningPathService;
 exports.LearningPathService = LearningPathService = __decorate([

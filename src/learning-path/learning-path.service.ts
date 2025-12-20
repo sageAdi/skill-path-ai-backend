@@ -14,9 +14,15 @@ import { NodeType, NodeStatus } from './interfaces/path-node.interface';
 import {
   LearningPathStatus,
   NodeStatus as PrismaNodeStatus,
+  AssessmentStatus,
   type Prisma,
   // NodeType as PrismaNodeType,
 } from '@prisma/client';
+import {
+  GenerateRoadmapDto,
+  GenerateRoadmapResponseDto,
+  RoadmapSkillNode,
+} from './dto/generate-roadmap.dto';
 
 @Injectable()
 export class LearningPathService {
@@ -392,5 +398,308 @@ export class LearningPathService {
       createdAt: learningPath.createdAt,
       updatedAt: learningPath.updatedAt,
     };
+  }
+
+  /**
+   * Generate comprehensive AI-powered roadmap based on assessment results
+   */
+  async generateRoadmap(
+    userId: string,
+    dto: GenerateRoadmapDto,
+  ): Promise<GenerateRoadmapResponseDto> {
+    // 1. Validate and fetch assessment
+    const assessment = await this.prisma.assessment.findUnique({
+      where: { id: dto.assessmentId },
+      include: {
+        questions: {
+          orderBy: {
+            order: 'asc',
+          },
+        },
+        user: true,
+      },
+    });
+
+    if (!assessment) {
+      throw new NotFoundException('Assessment not found');
+    }
+
+    if (assessment.userId !== userId) {
+      throw new BadRequestException('Assessment does not belong to this user');
+    }
+
+    if (assessment.status !== AssessmentStatus.COMPLETED) {
+      throw new BadRequestException(
+        'Assessment must be completed before generating a roadmap',
+      );
+    }
+
+    // 2. Calculate assessment metrics
+    const answers = await this.prisma.assessmentAnswer.findMany({
+      where: {
+        userId,
+        questionId: {
+          in: assessment.questions.map((q) => q.id),
+        },
+      },
+      include: {
+        question: true,
+      },
+    });
+
+    if (answers.length === 0) {
+      throw new BadRequestException('No answers found for this assessment');
+    }
+
+    const totalQuestions = assessment.questions.length;
+    const correctAnswers = answers.filter((a) => a.isCorrect).length;
+    const score =
+      totalQuestions > 0 ? (correctAnswers / totalQuestions) * 100 : 0;
+
+    // Identify weak areas (questions answered incorrectly)
+    const weakAreas: string[] = [];
+    const strengths: string[] = [];
+
+    answers.forEach((answer) => {
+      const questionText = answer.question.question;
+      // Extract topic/skill from question (simplified - could be enhanced)
+      const topic = this.extractTopicFromQuestion(questionText);
+
+      if (!answer.isCorrect && !weakAreas.includes(topic)) {
+        weakAreas.push(topic);
+      } else if (answer.isCorrect && !strengths.includes(topic)) {
+        strengths.push(topic);
+      }
+    });
+
+    // 3. Fetch available skills
+    const availableSkills = await this.prisma.skill.findMany({
+      include: {
+        prerequisites: {
+          include: {
+            prerequisite: true,
+          },
+        },
+      },
+      orderBy: {
+        difficulty: 'asc',
+      },
+    });
+
+    if (availableSkills.length === 0) {
+      throw new NotFoundException('No skills available for roadmap generation');
+    }
+
+    // 4. Call AI to generate roadmap
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+    const aiRoadmap = await this.aiService.generateCareerRoadmap(
+      {
+        score: Math.round(score * 100) / 100,
+        totalQuestions,
+        correctAnswers,
+        weakAreas,
+        strengths,
+      },
+      dto.targetRole,
+      availableSkills.map((s) => ({
+        name: s.name,
+        description: s.description || undefined,
+        difficulty: s.difficulty,
+      })),
+    );
+
+    // 5. Match AI suggestions to actual skill IDs (create missing skills)
+    const roadmapNodes: RoadmapSkillNode[] = [];
+    let order = 1;
+    const skillsToCreate: Array<{ name: string; difficulty: string }> = [];
+
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    for (const aiSkill of aiRoadmap.skills as Array<{
+      skillName: string;
+      estimatedWeeks: number;
+      priority: 'high' | 'medium' | 'low';
+      resources: string[];
+      milestones: string[];
+    }>) {
+      // Find matching skill in database (case-insensitive)
+      const matchedSkill = availableSkills.find(
+        (s) => s.name.toLowerCase() === aiSkill.skillName.toLowerCase(),
+      );
+
+      // If skill doesn't exist, prepare to create it
+      if (!matchedSkill) {
+        // Determine difficulty based on priority
+        const difficulty =
+          aiSkill.priority === 'high'
+            ? 'BEGINNER'
+            : aiSkill.priority === 'low'
+              ? 'ADVANCED'
+              : 'INTERMEDIATE';
+
+        skillsToCreate.push({
+          name: aiSkill.skillName,
+          difficulty,
+        });
+      }
+    }
+
+    // Create missing skills in database
+    if (skillsToCreate.length > 0) {
+      console.log(
+        `Creating ${skillsToCreate.length} missing skills in database:`,
+        skillsToCreate.map((s) => s.name).join(', '),
+      );
+
+      for (const skillData of skillsToCreate) {
+        try {
+          const newSkill = await this.prisma.skill.create({
+            data: {
+              name: skillData.name,
+              difficulty: skillData.difficulty as
+                | 'BEGINNER'
+                | 'INTERMEDIATE'
+                | 'ADVANCED',
+              description: `AI-suggested skill for ${dto.targetRole}`,
+            },
+            include: {
+              prerequisites: {
+                include: {
+                  prerequisite: true,
+                },
+              },
+            },
+          });
+          availableSkills.push(newSkill);
+        } catch (error) {
+          // Skill might have been created concurrently, try to fetch it
+          const existingSkill = await this.prisma.skill.findUnique({
+            where: { name: skillData.name },
+            include: {
+              prerequisites: {
+                include: {
+                  prerequisite: true,
+                },
+              },
+            },
+          });
+          if (existingSkill) {
+            availableSkills.push(existingSkill);
+          } else {
+            console.error(`Failed to create skill: ${skillData.name}`, error);
+          }
+        }
+      }
+    }
+
+    // Now match again with the updated skill list
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    for (const aiSkill of aiRoadmap.skills as Array<{
+      skillName: string;
+      estimatedWeeks: number;
+      priority: 'high' | 'medium' | 'low';
+      resources: string[];
+      milestones: string[];
+    }>) {
+      // Find matching skill in database (case-insensitive)
+      const matchedSkill = availableSkills.find(
+        (s) => s.name.toLowerCase() === aiSkill.skillName.toLowerCase(),
+      );
+
+      if (matchedSkill) {
+        roadmapNodes.push({
+          skillId: matchedSkill.id,
+          skillName: matchedSkill.name,
+          order: order++,
+          estimatedWeeks: aiSkill.estimatedWeeks,
+          priority: aiSkill.priority,
+          resources: aiSkill.resources,
+          milestones: aiSkill.milestones,
+        });
+      } else {
+        // This should rarely happen after creating missing skills
+        console.warn(
+          `Skill "${aiSkill.skillName}" still not found after creation attempt`,
+        );
+      }
+    }
+
+    if (roadmapNodes.length === 0) {
+      throw new BadRequestException(
+        'Failed to create learning path. Please try again or contact support.',
+      );
+    }
+
+    // 6. Create LearningPath in database
+    const learningPath = await this.prisma.learningPath.create({
+      data: {
+        userId,
+        status: LearningPathStatus.ACTIVE,
+        nodes: {
+          create: roadmapNodes.map((node) => ({
+            skillId: node.skillId,
+            order: node.order,
+            nodeType: NodeType.SKILL,
+            status: PrismaNodeStatus.PENDING,
+          })),
+        },
+      },
+      include: {
+        nodes: {
+          include: {
+            skill: true,
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
+    });
+
+    // 7. Build response with enriched data
+    return {
+      learningPathId: learningPath.id,
+      targetRole: dto.targetRole,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      totalEstimatedWeeks: aiRoadmap.totalEstimatedWeeks,
+      nodes: roadmapNodes,
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      recommendations: aiRoadmap.recommendations,
+      createdAt: learningPath.createdAt,
+    };
+  }
+
+  /**
+   * Helper: Extract topic from question text
+   * Simplified implementation - could be enhanced with NLP
+   */
+  private extractTopicFromQuestion(question: string): string {
+    // Simple keyword extraction (could be improved)
+    const keywords = [
+      'JavaScript',
+      'TypeScript',
+      'React',
+      'Node.js',
+      'API',
+      'Database',
+      'SQL',
+      'NoSQL',
+      'Docker',
+      'Git',
+      'Testing',
+      'Security',
+      'Performance',
+      'CSS',
+      'HTML',
+    ];
+
+    for (const keyword of keywords) {
+      if (question.toLowerCase().includes(keyword.toLowerCase())) {
+        return keyword;
+      }
+    }
+
+    // Extract first few words as fallback
+    const words = question.split(' ').slice(0, 3);
+    return words.join(' ');
   }
 }

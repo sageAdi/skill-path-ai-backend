@@ -6,6 +6,8 @@ import {
   GeneratedQuestion,
   PathAdjustmentSuggestion,
   CareerTransition,
+  CareerRoadmap,
+  RoadmapSkill,
 } from '../interfaces/ai-provider.interface';
 
 // Type definitions for Groq JSON responses
@@ -33,8 +35,22 @@ interface GroqCareerTransitionResponse {
     role?: string;
     description?: string;
     transitionDifficulty?: string;
-    commonSkills?: string[] | unknown;
+    commonSkills?: string[];
   }>;
+}
+
+interface GroqRoadmapResponse {
+  targetRole?: string;
+  totalEstimatedWeeks?: number | string;
+  skills?: Array<{
+    skillName?: string;
+    estimatedWeeks?: number | string;
+    priority?: string;
+    resources?: unknown;
+    milestones?: unknown;
+    prerequisites?: unknown;
+  }>;
+  recommendations?: string;
 }
 
 @Injectable()
@@ -391,7 +407,7 @@ Make sure to provide exactly 4 diverse transition options that cover different c
           } else if (typeof tObj.commonSkills === 'string') {
             // Try to parse if it's a JSON string
             try {
-              const parsed = JSON.parse(tObj.commonSkills);
+              const parsed: unknown = JSON.parse(tObj.commonSkills);
               skills = Array.isArray(parsed)
                 ? parsed.map(String)
                 : [String(tObj.commonSkills)];
@@ -431,6 +447,241 @@ Make sure to provide exactly 4 diverse transition options that cover different c
     } catch (error) {
       this.logger.error('Error generating career transitions:', error);
       throw new Error('Failed to generate career transition suggestions');
+    }
+  }
+
+  async generateCareerRoadmap(
+    assessmentData: {
+      score: number;
+      totalQuestions: number;
+      correctAnswers: number;
+      weakAreas: string[];
+      strengths: string[];
+    },
+    targetRole: string,
+    availableSkills: Array<{
+      name: string;
+      description?: string;
+      difficulty: string;
+    }>,
+  ): Promise<CareerRoadmap> {
+    try {
+      const weakAreasStr =
+        assessmentData.weakAreas.length > 0
+          ? assessmentData.weakAreas.join(', ')
+          : 'None identified';
+      const strengthsStr =
+        assessmentData.strengths.length > 0
+          ? assessmentData.strengths.join(', ')
+          : 'Assessment in progress';
+
+      const skillsList = availableSkills
+        .map(
+          (s) =>
+            `- ${s.name} (${s.difficulty})${s.description ? ': ' + s.description : ''}`,
+        )
+        .join('\n');
+
+      const prompt = `You are a career development expert. Generate a comprehensive learning roadmap.
+
+Current Assessment Results:
+- Score: ${assessmentData.score}%
+- Correct: ${assessmentData.correctAnswers}/${assessmentData.totalQuestions}
+- Weak Areas: ${weakAreasStr}
+- Strengths: ${strengthsStr}
+
+Target Role: ${targetRole}
+
+Available Skills to choose from:
+${skillsList}
+
+Generate a personalized learning roadmap with:
+1. Select 8-12 relevant skills from the available list that are most important for "${targetRole}"
+2. Order them logically (prerequisites first, foundational skills before advanced)
+3. Estimate realistic learning time in weeks for each skill
+4. Assign priority (high/medium/low) based on importance for the target role
+5. Suggest 2-3 learning resources per skill WITH ACTUAL URLs (courses, documentation, tutorials)
+6. Define 2-3 achievable milestones per skill
+7. Provide overall recommendations based on the assessment results
+
+IMPORTANT: 
+- Only select skills from the available list provided above. Use exact skill names.
+- For resources, provide actual clickable URLs in format "Resource Name - https://example.com/path"
+
+Return JSON in this exact format:
+{
+  "targetRole": "${targetRole}",
+  "totalEstimatedWeeks": <sum of all estimated weeks>,
+  "skills": [
+    {
+      "skillName": "<exact name from available skills>",
+      "estimatedWeeks": <number>,
+      "priority": "high" | "medium" | "low",
+      "resources": [
+        "MDN Web Docs - https://developer.mozilla.org/",
+        "FreeCodeCamp Course - https://www.freecodecamp.org/learn",
+        "Official Documentation - https://docs.example.com"
+      ],
+      "milestones": ["<milestone 1>", "<milestone 2>", "<milestone 3>"],
+      "prerequisites": ["<optional prerequisite skill names>"]
+    }
+  ],
+  "recommendations": "<personalized recommendations based on assessment>"
+}`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a career development expert specializing in creating personalized learning roadmaps. Provide realistic, actionable learning paths based on assessment results and career goals. Always return valid JSON.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from Groq');
+      }
+
+      // Parse JSON response
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        // Sometimes Groq returns JSON wrapped in markdown code blocks
+        const jsonMatch =
+          content.match(/```json\s*([\s\S]*?)\s*```/) ||
+          content.match(/```\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1]);
+        } else {
+          throw new Error('Failed to parse JSON response from Groq');
+        }
+      }
+
+      const response = parsed as GroqRoadmapResponse;
+
+      // Validate and sanitize response
+      if (!response.skills || !Array.isArray(response.skills)) {
+        throw new Error('Invalid roadmap response: missing skills array');
+      }
+
+      const validPriorities: RoadmapSkill['priority'][] = [
+        'high',
+        'medium',
+        'low',
+      ];
+
+      const sanitizedSkills: RoadmapSkill[] = response.skills
+        .map((skill) => {
+          // Parse estimatedWeeks
+          const weeks =
+            typeof skill.estimatedWeeks === 'number'
+              ? skill.estimatedWeeks
+              : typeof skill.estimatedWeeks === 'string'
+                ? parseInt(skill.estimatedWeeks, 10)
+                : 1;
+
+          // Parse resources array
+          let resources: string[] = [];
+          if (Array.isArray(skill.resources)) {
+            resources = skill.resources.map(String);
+          } else if (typeof skill.resources === 'string') {
+            try {
+              const parsed: unknown = JSON.parse(skill.resources);
+              resources = Array.isArray(parsed) ? parsed.map(String) : [];
+            } catch {
+              resources = [];
+            }
+          }
+
+          // Parse milestones array
+          let milestones: string[] = [];
+          if (Array.isArray(skill.milestones)) {
+            milestones = skill.milestones.map(String);
+          } else if (typeof skill.milestones === 'string') {
+            try {
+              const parsed: unknown = JSON.parse(skill.milestones);
+              milestones = Array.isArray(parsed) ? parsed.map(String) : [];
+            } catch {
+              milestones = [];
+            }
+          }
+
+          // Parse prerequisites array
+          let prerequisites: string[] = [];
+          if (Array.isArray(skill.prerequisites)) {
+            prerequisites = skill.prerequisites.map(String);
+          } else if (typeof skill.prerequisites === 'string') {
+            try {
+              const parsed: unknown = JSON.parse(skill.prerequisites);
+              prerequisites = Array.isArray(parsed) ? parsed.map(String) : [];
+            } catch {
+              prerequisites = [];
+            }
+          }
+
+          const priority = skill.priority || 'medium';
+
+          return {
+            skillName: String(skill.skillName || '').trim(),
+            estimatedWeeks: isNaN(weeks) ? 1 : Math.max(1, weeks),
+            priority: validPriorities.includes(
+              priority as RoadmapSkill['priority'],
+            )
+              ? (priority as RoadmapSkill['priority'])
+              : 'medium',
+            resources: resources.filter((r) => r.trim().length > 0),
+            milestones: milestones.filter((m) => m.trim().length > 0),
+            prerequisites: prerequisites.filter((p) => p.trim().length > 0),
+          };
+        })
+        .filter(
+          (skill) =>
+            skill.skillName &&
+            skill.estimatedWeeks > 0 &&
+            skill.resources.length > 0 &&
+            skill.milestones.length > 0,
+        );
+
+      if (sanitizedSkills.length === 0) {
+        throw new Error('No valid skills in roadmap response');
+      }
+
+      // Calculate total weeks
+      const totalWeeks = sanitizedSkills.reduce(
+        (sum, skill) => sum + skill.estimatedWeeks,
+        0,
+      );
+
+      const totalEstimatedWeeks =
+        typeof response.totalEstimatedWeeks === 'number'
+          ? response.totalEstimatedWeeks
+          : typeof response.totalEstimatedWeeks === 'string'
+            ? parseInt(response.totalEstimatedWeeks, 10)
+            : totalWeeks;
+
+      return {
+        targetRole: String(response.targetRole || targetRole).trim(),
+        totalEstimatedWeeks: isNaN(totalEstimatedWeeks)
+          ? totalWeeks
+          : totalEstimatedWeeks,
+        skills: sanitizedSkills,
+        recommendations: String(
+          response.recommendations || 'Focus on building a strong foundation.',
+        ).trim(),
+      };
+    } catch (error) {
+      this.logger.error('Error generating career roadmap:', error);
+      throw new Error('Failed to generate career roadmap');
     }
   }
 }
