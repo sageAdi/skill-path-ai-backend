@@ -1,5 +1,5 @@
 import type { IAIProvider } from './interfaces/ai-provider.interface';
-import type { GeneratedQuestion, PathAdjustmentSuggestion } from './interfaces/ai-provider.interface';
+import type { GeneratedQuestion, PathAdjustmentSuggestion, CareerTransition } from './interfaces/ai-provider.interface';
 export declare class AIService {
     private readonly aiProvider;
     constructor(aiProvider: IAIProvider);
@@ -15,4 +15,5 @@ export declare class AIService {
         skillName: string;
         order: number;
     }>): Promise<PathAdjustmentSuggestion[]>;
+    suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
 }

@@ -5,6 +5,7 @@ import {
   IAIProvider,
   GeneratedQuestion,
   PathAdjustmentSuggestion,
+  CareerTransition,
 } from '../interfaces/ai-provider.interface';
 
 // Type definitions for Groq JSON responses
@@ -24,6 +25,15 @@ interface GroqSuggestionResponse {
     skillId?: string;
     targetOrder?: number | string;
     reason?: string;
+  }>;
+}
+
+interface GroqCareerTransitionResponse {
+  transitions?: Array<{
+    role?: string;
+    description?: string;
+    transitionDifficulty?: string;
+    commonSkills?: string[] | unknown;
   }>;
 }
 
@@ -285,6 +295,142 @@ Suggest learning path adjustments. Return JSON object with "suggestions" array: 
     } catch (error) {
       this.logger.error('Error suggesting path adjustments:', error);
       return [];
+    }
+  }
+
+  async suggestCareerTransitions(
+    currentRole: string,
+  ): Promise<CareerTransition[]> {
+    try {
+      const prompt = `Given the current career role: "${currentRole}", suggest exactly 4 career transition options that would be realistic and valuable for someone in this role. 
+
+For each transition, provide:
+- role: The target career role name
+- description: A brief explanation of what this transition involves (1-2 sentences)
+- transitionDifficulty: One of "Easy", "Medium", or "Hard" based on how difficult the transition would be
+- commonSkills: An array of 3-5 key skills or technologies needed for this transition
+
+Return the response as a JSON object with a "transitions" array:
+{
+  "transitions": [
+    {
+      "role": "Role Name",
+      "description": "Brief description",
+      "transitionDifficulty": "Easy|Medium|Hard",
+      "commonSkills": ["Skill1", "Skill2", "Skill3"]
+    }
+  ]
+}
+
+Make sure to provide exactly 4 diverse transition options that cover different career directions (e.g., technical advancement, lateral moves, specialization, leadership).`;
+
+      const completion = await this.groq.chat.completions.create({
+        model: this.model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a career counselor expert specializing in tech career transitions. Provide realistic, actionable career transition suggestions based on the current role. Always return valid JSON with exactly 4 transitions.',
+          },
+          {
+            role: 'user',
+            content: prompt,
+          },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.7,
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from Groq');
+      }
+
+      // Parse JSON response
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(content);
+      } catch {
+        // Sometimes Groq returns JSON wrapped in markdown code blocks
+        const jsonMatch =
+          content.match(/```json\s*([\s\S]*?)\s*```/) ||
+          content.match(/```\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+          parsed = JSON.parse(jsonMatch[1]);
+        } else {
+          throw new Error('Failed to parse JSON response from Groq');
+        }
+      }
+
+      const response = parsed as GroqCareerTransitionResponse;
+      const transitions = Array.isArray(parsed)
+        ? parsed
+        : response.transitions || [];
+
+      // Validate and sanitize transitions
+      const validDifficulties: CareerTransition['transitionDifficulty'][] = [
+        'Easy',
+        'Medium',
+        'Hard',
+      ];
+
+      const sanitized = transitions
+        .slice(0, 4)
+        .map((t) => {
+          const tObj = t as {
+            role?: string;
+            description?: string;
+            transitionDifficulty?: string;
+            commonSkills?: unknown;
+          };
+
+          // Handle commonSkills - could be array or string
+          let skills: string[] = [];
+          if (Array.isArray(tObj.commonSkills)) {
+            skills = tObj.commonSkills.map(String);
+          } else if (typeof tObj.commonSkills === 'string') {
+            // Try to parse if it's a JSON string
+            try {
+              const parsed = JSON.parse(tObj.commonSkills);
+              skills = Array.isArray(parsed)
+                ? parsed.map(String)
+                : [String(tObj.commonSkills)];
+            } catch {
+              skills = [String(tObj.commonSkills)];
+            }
+          }
+
+          const difficulty = tObj.transitionDifficulty || 'Medium';
+          return {
+            role: String(tObj.role || 'Unknown Role').trim(),
+            description: String(tObj.description || '').trim(),
+            transitionDifficulty: validDifficulties.includes(
+              difficulty as CareerTransition['transitionDifficulty'],
+            )
+              ? (difficulty as CareerTransition['transitionDifficulty'])
+              : 'Medium',
+            commonSkills: skills.filter((s) => s.trim().length > 0),
+          };
+        })
+        .filter(
+          (t) =>
+            t.role &&
+            t.role !== 'Unknown Role' &&
+            t.description &&
+            t.commonSkills.length > 0,
+        );
+
+      // Ensure we have exactly 4 transitions
+      if (sanitized.length < 4) {
+        this.logger.warn(
+          `Only received ${sanitized.length} valid transitions, expected 4`,
+        );
+      }
+
+      return sanitized.slice(0, 4);
+    } catch (error) {
+      this.logger.error('Error generating career transitions:', error);
+      throw new Error('Failed to generate career transition suggestions');
     }
   }
 }

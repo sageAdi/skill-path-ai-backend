@@ -29,6 +29,12 @@ let UsersController = class UsersController {
     updateProfile(user, updateProfileDto) {
         return this.usersService.updateProfile(user.id, updateProfileDto);
     }
+    getCareerTransitions(currentRole) {
+        if (!currentRole || currentRole.trim() === '') {
+            throw new common_1.BadRequestException('currentRole query parameter is required');
+        }
+        return this.usersService.getCareerTransitions(currentRole);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -46,6 +52,13 @@ __decorate([
     __metadata("design:paramtypes", [Object, update_profile_dto_1.UpdateProfileDto]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "updateProfile", null);
+__decorate([
+    (0, common_1.Get)('career-transitions'),
+    __param(0, (0, common_1.Query)('currentRole')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", Promise)
+], UsersController.prototype, "getCareerTransitions", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.Controller)('users'),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),

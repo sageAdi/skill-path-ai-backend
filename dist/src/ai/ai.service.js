@@ -28,6 +28,9 @@ let AIService = class AIService {
     async suggestPathAdjustments(progressData, currentPath) {
         return this.aiProvider.suggestPathAdjustments(progressData, currentPath);
     }
+    suggestCareerTransitions(currentRole) {
+        return this.aiProvider.suggestCareerTransitions(currentRole);
+    }
 };
 exports.AIService = AIService;
 exports.AIService = AIService = __decorate([

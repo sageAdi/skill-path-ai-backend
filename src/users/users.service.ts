@@ -1,10 +1,16 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { CareerTransitionsResponseDto } from './dto/career-transitions.dto';
+import { AIService } from '../ai/ai.service';
+import type { CareerTransition } from '../ai/interfaces/ai-provider.interface';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private aiService: AIService,
+  ) {}
 
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -52,5 +58,22 @@ export class UsersService {
     });
 
     return updatedUser;
+  }
+
+  /**
+   * Get 4 suggested career transitions based on current role
+   * Uses AI (Groq) to generate personalized career transition suggestions
+   */
+  async getCareerTransitions(
+    currentRole: string,
+  ): Promise<CareerTransitionsResponseDto> {
+    // Use AI to generate career transitions
+    const suggestedRoles: CareerTransition[] =
+      await this.aiService.suggestCareerTransitions(currentRole);
+
+    return {
+      currentRole,
+      suggestedRoles,
+    };
   }
 }

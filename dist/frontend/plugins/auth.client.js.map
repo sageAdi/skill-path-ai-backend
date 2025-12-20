@@ -1,1 +1,0 @@
-{"version":3,"file":"auth.client.js","sourceRoot":"","sources":["../../../frontend/plugins/auth.client.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,MAAM,CAAC;AACxC,OAAO,EAAE,YAAY,EAAE,MAAM,eAAe,CAAC;AAM7C,eAAe,gBAAgB,CAAC,GAAG,EAAE;IACnC,MAAM,SAAS,GAAG,YAAY,EAAE,CAAC;IACjC,SAAS,CAAC,IAAI,EAAE,CAAC;AACnB,CAAC,CAAC,CAAC"}

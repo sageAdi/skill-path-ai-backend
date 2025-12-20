@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
+const ai_service_1 = require("../ai/ai.service");
 let UsersService = class UsersService {
     prisma;
-    constructor(prisma) {
+    aiService;
+    constructor(prisma, aiService) {
         this.prisma = prisma;
+        this.aiService = aiService;
     }
     async getProfile(userId) {
         const user = await this.prisma.user.findUnique({
@@ -57,10 +60,18 @@ let UsersService = class UsersService {
         });
         return updatedUser;
     }
+    async getCareerTransitions(currentRole) {
+        const suggestedRoles = await this.aiService.suggestCareerTransitions(currentRole);
+        return {
+            currentRole,
+            suggestedRoles,
+        };
+    }
 };
 exports.UsersService = UsersService;
 exports.UsersService = UsersService = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
+        ai_service_1.AIService])
 ], UsersService);
 //# sourceMappingURL=users.service.js.map

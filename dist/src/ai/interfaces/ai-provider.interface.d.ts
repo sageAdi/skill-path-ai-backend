@@ -14,6 +14,12 @@ export interface PathAdjustmentSuggestion {
     targetOrder?: number;
     reason: string;
 }
+export interface CareerTransition {
+    role: string;
+    description: string;
+    transitionDifficulty: 'Easy' | 'Medium' | 'Hard';
+    commonSkills: string[];
+}
 export interface IAIProvider {
     generateQuestions(context: string, skillName?: string, count?: number): Promise<GeneratedQuestion[]>;
     explainAnswer(question: string, userAnswer: string, correctAnswer: string): Promise<string>;
@@ -27,4 +33,5 @@ export interface IAIProvider {
         skillName: string;
         order: number;
     }>): Promise<PathAdjustmentSuggestion[]>;
+    suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
 }

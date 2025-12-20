@@ -21,6 +21,13 @@ export interface PathAdjustmentSuggestion {
   reason: string;
 }
 
+export interface CareerTransition {
+  role: string;
+  description: string;
+  transitionDifficulty: 'Easy' | 'Medium' | 'Hard';
+  commonSkills: string[];
+}
+
 export interface IAIProvider {
   /**
    * Generate assessment questions for a role or skill
@@ -52,4 +59,9 @@ export interface IAIProvider {
     }>,
     currentPath: Array<{ skillId: string; skillName: string; order: number }>,
   ): Promise<PathAdjustmentSuggestion[]>;
+
+  /**
+   * Generate career transition suggestions based on current role
+   */
+  suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]>;
 }

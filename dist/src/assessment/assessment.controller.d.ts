@@ -58,20 +58,20 @@ export declare class AssessmentController {
         questions: {
             id: string;
             createdAt: Date;
+            correctAnswer: number;
             assessmentId: string;
             question: string;
             options: import("@prisma/client/runtime/client").JsonValue;
-            correctAnswer: number;
             explanation: string | null;
             order: number;
         }[];
     } & {
         id: string;
         createdAt: Date;
+        type: import("@prisma/client").$Enums.AssessmentType;
         skillId: string | null;
         userId: string;
         status: import("@prisma/client").$Enums.AssessmentStatus;
-        type: import("@prisma/client").$Enums.AssessmentType;
         completedAt: Date | null;
     }>;
 }

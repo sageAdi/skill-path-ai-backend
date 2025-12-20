@@ -3,6 +3,7 @@ import type { IAIProvider } from './interfaces/ai-provider.interface';
 import type {
   GeneratedQuestion,
   PathAdjustmentSuggestion,
+  CareerTransition,
 } from './interfaces/ai-provider.interface';
 
 @Injectable()
@@ -37,5 +38,9 @@ export class AIService {
     currentPath: Array<{ skillId: string; skillName: string; order: number }>,
   ): Promise<PathAdjustmentSuggestion[]> {
     return this.aiProvider.suggestPathAdjustments(progressData, currentPath);
+  }
+
+  suggestCareerTransitions(currentRole: string): Promise<CareerTransition[]> {
+    return this.aiProvider.suggestCareerTransitions(currentRole);
   }
 }
